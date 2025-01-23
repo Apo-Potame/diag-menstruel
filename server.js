@@ -1,20 +1,19 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const fetch = require('node-fetch');
-const path = require('path'); // Nécessaire pour servir le fichier HTML
 require('dotenv').config();
 
 const app = express();
-const PORT = 3000;
+const port = process.env.PORT || 3000;
 
 app.use(bodyParser.json());
 
-// Route pour servir le fichier HTML
+// Serveur pour renvoyer un fichier HTML ou servir la page d'accueil
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public/index.html'));
+    res.sendFile(path.join(__dirname, 'public/index.html'));
 });
 
-// Endpoint pour recevoir les requêtes du frontend Shopify
+// Fonction pour gérer le chatbot
 app.post('/api/chat', async (req, res) => {
     const userMessage = req.body.userMessage;
 
@@ -28,10 +27,7 @@ app.post('/api/chat', async (req, res) => {
             body: JSON.stringify({
                 model: "gpt-4",
                 messages: [
-                    {
-                        role: "system",
-                        content: "Tu es une sage-femme virtuelle experte en santé féminine et menstruelle. Réponds de manière claire, professionnelle et rassurante aux questions sur les cycles menstruels, les symptômes menstruels et les affections gynécologiques courantes."
-                    },
+                    { role: "system", content: "Tu es une sage-femme virtuelle experte en santé féminine." },
                     { role: "user", content: userMessage }
                 ],
                 max_tokens: 500
@@ -46,7 +42,5 @@ app.post('/api/chat', async (req, res) => {
     }
 });
 
-// Démarrer le serveur
-app.listen(PORT, () => {
-    console.log(`Serveur Node.js en cours d'exécution sur http://localhost:${PORT}`);
-});
+// Vercel devrait détecter ce fichier pour le déploiement
+module.exports = app;
