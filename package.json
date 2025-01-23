@@ -1,5 +1,5 @@
 {
-  "name": "Diag menstruel",
+  "name": "diag-menstruel",
   "version": "1.0.0",
   "description": "Diag menstruel",
   "main": "server.js",
@@ -15,9 +15,4 @@
   "keywords": [],
   "author": "",
   "license": "ISC"
-}
-
-
-"scripts": {
-  "start": "node server.js"
 }
