@@ -8,6 +8,11 @@ const PORT = 3000;
 
 app.use(bodyParser.json());
 
+// Route pour la racine (`/`)
+app.get('/', (req, res) => {
+    res.send('Bienvenue chez votre sage-femme virtuelle !');
+});
+
 // Endpoint pour recevoir les requêtes du frontend Shopify
 app.post('/api/chat', async (req, res) => {
     const userMessage = req.body.userMessage;
@@ -34,6 +39,7 @@ app.post('/api/chat', async (req, res) => {
     }
 });
 
+// Démarrer le serveur
 app.listen(PORT, () => {
     console.log(`Serveur Node.js en cours d'exécution sur http://localhost:${PORT}`);
 });
