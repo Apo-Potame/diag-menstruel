@@ -71,7 +71,7 @@ app.post('/api/chat', async (req, res) => {
     const reply = await callOpenAI([
       {
         role: "system",
-        content: "Tu es une sage-femme virtuelle experte en santé féminine et menstruelle. Réponds en vouvoyant de manière claire et rassurante, mais précise une fois que la discussion est finie que tes réponses sont une aide au diagnostic et ne remplacent pas une visite médicale chez un professionnel de santé."
+        content: "Tu es une sage-femme virtuelle experte en santé féminine et menstruelle. Réponds en vouvoyant de manière claire et rassurante. A la toute fin de la discussion, précise que tes réponses sont une aide au diagnostic et ne remplacent pas une visite médicale chez un professionnel de santé."
       },
       { role: "user", content: userMessage }
     ]);
