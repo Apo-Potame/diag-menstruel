@@ -101,13 +101,19 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ userMessage }),
         });
-        const data = await response.json();
 
-        // Affiche la réponse de l'API
-        const botMessage = data.choices[0].message.content || "Je n'ai pas compris votre question.";
-        displayMessage(botMessage, "bot");
+        const data = await response.json();
+        console.log("Réponse reçue du backend :", data); // Log de la réponse pour débogage
+
+        // Vérifie si 'choices' existe et contient des éléments
+        if (data && data.reply) {
+          displayMessage(data.reply, "bot");
+        } else {
+          displayMessage("Je n'ai pas pu obtenir une réponse de l'API. Réessayez plus tard.", "bot");
+          console.error("Réponse invalide du backend :", data);
+        }
       } catch (error) {
-        console.error("Erreur :", error);
+        console.error("Erreur côté frontend :", error);
         displayMessage("Une erreur est survenue. Réessayez plus tard.", "bot");
       }
     }
