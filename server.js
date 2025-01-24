@@ -49,7 +49,7 @@ async function callOpenAI(messages, maxTokens = 500) {
   return data.choices[0].message.content;
 }
 
-// Fonction pour récupérer les produits depuis Shopify avec pagination
+// Fonction pour récupérer les produits depuis Shopify avec pagination via Link headers
 async function fetchShopifyProducts() {
   const SHOPIFY_ACCESS_TOKEN = process.env.SHOPIFY_ACCESS_TOKEN;
   const SHOPIFY_STORE_URL = process.env.SHOPIFY_STORE_URL;
@@ -59,14 +59,10 @@ async function fetchShopifyProducts() {
   }
 
   let products = [];
-  let page = 1;
-  const limit = 50; // Shopify retourne un maximum de 50 produits par page
-  let hasMore = true;
+  let nextPageUrl = `https://${SHOPIFY_STORE_URL}/admin/api/2023-01/products.json?limit=50`; // Première page
 
-  while (hasMore) {
-    const url = `https://${SHOPIFY_STORE_URL}/admin/api/2023-01/products.json?limit=${limit}&page=${page}`;
-
-    const response = await fetch(url, {
+  while (nextPageUrl) {
+    const response = await fetch(nextPageUrl, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -74,28 +70,32 @@ async function fetchShopifyProducts() {
       },
     });
 
-    const data = await response.json();
-
-    if (!response.ok || data.errors) {
-      console.error("Erreur API Shopify :", data.errors || response.statusText);
-      throw new Error(`Erreur API Shopify: ${JSON.stringify(data.errors || response.statusText)}`);
+    if (!response.ok) {
+      const errorDetails = await response.json();
+      console.error("Erreur API Shopify :", errorDetails);
+      throw new Error(`Erreur API Shopify: ${JSON.stringify(errorDetails)}`);
     }
 
+    const data = await response.json();
     if (data.products && data.products.length > 0) {
       products = products.concat(
         data.products
           .filter(product => product.published_at) // Filtrer uniquement les produits actifs
           .map(product => ({
             name: product.title,
-            description: product.body_html.replace(/<[^>]*>/g, ''), // Nettoyer les descriptions
+            description: product.body_html.replace(/<[^>]*>/g, ''), // Nettoyer les descriptions HTML
             url: `https://${SHOPIFY_STORE_URL}/products/${product.handle}`,
           }))
       );
-      console.log(`Page ${page} récupérée, ${data.products.length} produits`);
-      page++;
-      hasMore = data.products.length === limit; // Si moins de 50 produits, c'est la dernière page
+    }
+
+    // Vérifier si une page suivante existe dans les en-têtes
+    const linkHeader = response.headers.get('link');
+    if (linkHeader && linkHeader.includes('rel="next"')) {
+      const match = linkHeader.match(/<([^>]+)>;\s*rel="next"/);
+      nextPageUrl = match ? match[1] : null;
     } else {
-      hasMore = false;
+      nextPageUrl = null; // Pas de page suivante
     }
   }
 
