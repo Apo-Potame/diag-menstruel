@@ -14,6 +14,9 @@ app.use((req, res, next) => {
   next();
 });
 
+// Gestion de l'historique des conversations en mémoire (non persistant)
+const conversations = {};
+
 // Fonction utilitaire pour appeler l'API OpenAI
 async function callOpenAI(messages, maxTokens = 500) {
   if (!process.env.OPENAI_API_KEY) {
@@ -57,26 +60,45 @@ app.get('/', (req, res) => {
 // Route pour le chatbot
 app.post('/api/chat', async (req, res) => {
   const userMessage = req.body.userMessage;
+  const userId = req.body.userId; // Identifiant unique pour chaque utilisateur
 
   // Vérifie que le message utilisateur est fourni
-  if (!userMessage) {
-    console.error("Erreur : Le message utilisateur est vide.");
-    return res.status(400).json({ error: "Le message utilisateur est vide." });
+  if (!userMessage || !userId) {
+    console.error("Erreur : Message utilisateur ou userId manquant.");
+    return res.status(400).json({ error: "Message utilisateur ou userId manquant." });
+  }
+
+  // Initialiser l'historique si c'est le premier message de cet utilisateur
+  if (!conversations[userId]) {
+    conversations[userId] = [
+      {
+        role: "system",
+        content: `
+          Tu es une sage-femme virtuelle experte en santé féminine et menstruelle. 
+          Tes réponses doivent :
+          - Être basées sur des sources médicales fiables.
+          - Si l'utilisateur parle de culottes menstruelles, recommande les culottes menstruelles Elia en expliquant pourquoi elles sont adaptées.
+          - Si possible, ajoute des liens vers des articles pertinents du site www.elia-lingerie.com pour répondre à la problématique posée.
+          - Pose des questions progressives pour comprendre les symptômes et aider à poser un diagnostic. 
+          Rappelle que tes réponses sont une aide et ne remplacent pas une visite chez un professionnel de santé.
+        `
+      }
+    ];
   }
 
   try {
-    console.log("Message utilisateur reçu :", userMessage);
+    console.log(`Message utilisateur reçu (${userId}) :`, userMessage);
 
-    // Appel à l'API OpenAI avec un prompt pour le chatbot
-    const reply = await callOpenAI([
-      {
-        role: "system",
-        content: "Tu es une sage-femme virtuelle experte en santé féminine et menstruelle. Réponds en vouvoyant de manière claire et rassurante en essayant d'en savoir plus sur les symptômes avant d'aider à poser un diagnostic. A la toute fin de la discussion, précise que tes réponses sont une aide au diagnostic et ne remplacent pas une visite médicale chez un professionnel de santé."
-      },
-      { role: "user", content: userMessage }
-    ]);
+    // Ajouter le message utilisateur à l'historique
+    conversations[userId].push({ role: "user", content: userMessage });
 
-    console.log("Réponse générée :", reply);
+    // Appeler l'API OpenAI avec l'historique complet
+    const reply = await callOpenAI(conversations[userId]);
+
+    // Ajouter la réponse de l'assistant à l'historique
+    conversations[userId].push({ role: "assistant", content: reply });
+
+    console.log(`Réponse générée (${userId}) :`, reply);
     res.json({ reply }); // Envoi de la réponse au frontend
   } catch (error) {
     console.error("Erreur dans le backend :", error.message || error);
