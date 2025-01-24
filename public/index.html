@@ -98,6 +98,15 @@
     const userInput = document.getElementById("user-input");
     const sendButton = document.getElementById("send-button");
 
+    // Générer un identifiant unique pour chaque utilisateur
+    let userId = localStorage.getItem("userId");
+    if (!userId) {
+      userId = crypto.randomUUID();
+      localStorage.setItem("userId", userId);
+    }
+
+    console.log("Identifiant utilisateur :", userId);
+
     // Fonction pour afficher un message
     function displayMessage(message, sender) {
       const messageDiv = document.createElement("div");
@@ -117,17 +126,13 @@
       userInput.value = "";
 
       try {
-        console.log("Envoi du message au backend :", userMessage);
         const response = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userMessage }),
+          body: JSON.stringify({ userMessage, userId }),
         });
 
         const data = await response.json();
-        console.log("Réponse reçue du backend :", data);
-
-        // Vérification de la structure de la réponse
         if (data && data.reply) {
           displayMessage(data.reply, "bot");
         } else {
@@ -142,7 +147,7 @@
 
     // Ajouter un message de bienvenue automatique
     window.onload = () => {
-      displayMessage("Bonjour ! Je suis votre sage-femme virtuelle. Comment puis-je vous aider ?", "bot");
+      displayMessage("Bonjour ! Je suis votre sage-femme virtuelle. Je vais vous poser quelques questions pour comprendre votre problème. N'hésitez pas à me répondre en détail !", "bot");
     };
 
     // Événement bouton envoyer
@@ -150,7 +155,10 @@
 
     // Événement touche "Entrée"
     userInput.addEventListener("keypress", (e) => {
-      if (e.key === "Enter") sendMessage();
+      if (e.key === "Enter") {
+        e.preventDefault(); // Empêche le saut de ligne dans le textarea
+        sendMessage();
+      }
     });
   </script>
 </body>
