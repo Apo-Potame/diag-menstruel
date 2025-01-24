@@ -14,23 +14,23 @@
       justify-content: center;
       align-items: center;
       height: 100vh;
-      overflow: hidden; /* Empêche tout débordement */
+      overflow: hidden; /* Empêche le défilement du body */
     }
     #chat-container {
       width: 400px;
       max-width: 90%;
-      height: 600px; /* Hauteur fixe */
+      height: 600px; /* Hauteur fixe pour les écrans moyens et grands */
       border: 2px solid #000; /* Noir */
       border-radius: 8px;
       background-color: #fff; /* Blanc */
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
       display: flex;
       flex-direction: column;
-      overflow: hidden; /* Empêche l'expansion du conteneur */
+      overflow: hidden; /* Empêche le conteneur global de s'étendre */
     }
     #chat-messages {
-      flex: 1; /* Occupe l'espace disponible */
-      overflow-y: auto; /* Défilement vertical si nécessaire */
+      flex: 1; /* Occupe tout l'espace restant */
+      overflow-y: auto; /* Active le défilement vertical si le contenu dépasse */
       padding: 16px;
       border-bottom: 2px solid #000; /* Noir */
       background-color: #fff; /* Blanc */
@@ -99,12 +99,12 @@
     /* Media queries pour différentes tailles d'écran */
     @media (max-width: 768px) { /* Tablettes et petits écrans */
       #chat-container {
-        height: 500px; /* Hauteur réduite */
+        height: 500px; /* Hauteur réduite pour les tablettes */
       }
     }
     @media (max-width: 480px) { /* Petits téléphones */
       #chat-container {
-        height: 400px; /* Hauteur encore plus réduite */
+        height: 400px; /* Hauteur réduite pour les petits téléphones */
       }
     }
   </style>
