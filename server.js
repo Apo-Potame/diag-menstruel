@@ -21,11 +21,14 @@ app.post('/api/chat', async (req, res) => {
 
   // Vérification si le message utilisateur est vide
   if (!userMessage) {
+    console.error("Erreur : Le message utilisateur est vide.");
     return res.status(400).json({ error: "Le message utilisateur est vide." });
   }
 
   try {
-    // Envoi de la requête à l'API OpenAI avec le modèle gpt-3.5-turbo
+    console.log("Message utilisateur reçu :", userMessage); // Log du message reçu
+
+    // Envoi de la requête à l'API OpenAI
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -45,11 +48,13 @@ app.post('/api/chat', async (req, res) => {
       }),
     });
 
-    // Lecture de la réponse de l'API
     const data = await response.json();
 
+    // Log complet de la réponse brute pour le débogage
+    console.log("Réponse brute de l'API OpenAI :", data);
+
     // Gestion des erreurs spécifiques à l'API OpenAI
-    if (response.status !== 200 || data.error) {
+    if (!response.ok || data.error) {
       console.error("Erreur API OpenAI :", data.error || data);
       return res.status(500).json({
         error: "Erreur avec l'API OpenAI.",
@@ -57,13 +62,19 @@ app.post('/api/chat', async (req, res) => {
       });
     }
 
+    // Vérification de la réponse attendue
+    if (!data.choices || data.choices.length === 0) {
+      console.error("Erreur : Aucune réponse générée par l'API.");
+      return res.status(500).json({ error: "Aucune réponse générée par l'API OpenAI." });
+    }
+
     // Envoi de la réponse au frontend
-    res.json({ reply: data.choices[0].message.content });
-  } 
-  
-  catch (error) {
+    const reply = data.choices[0].message.content;
+    console.log("Réponse générée :", reply);
+    res.json({ reply });
+  } catch (error) {
     // Gestion des erreurs réseau ou de serveur
-    console.error("Erreur API OpenAI :", error.message || error);
+    console.error("Erreur dans le backend :", error.message || error);
     res.status(500).json({
       error: "Erreur du serveur.",
       details: error.message || "Une erreur inattendue est survenue."
