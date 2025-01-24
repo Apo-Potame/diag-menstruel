@@ -114,7 +114,7 @@ app.post('/api/chat', async (req, res) => {
           - Ajouter des liens cliquables vers les pages pertinentes de www.elia-lingerie.com, au format HTML, pour répondre à la problématique posée.
           - Poser des questions larges pour commencer, puis des questions de plus en plus précises afin d’affiner le diagnostic.
           - Rappeler à la fin de la discussion entière que vos réponses sont une aide et ne remplacent pas une consultation avec un professionnel de santé.
-        ``,
+        `,
       },
       { role: "user", content: userMessage }
     ]);
