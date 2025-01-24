@@ -59,7 +59,7 @@ async function fetchShopifyProducts() {
   }
 
   let products = [];
-  let nextPageUrl = `https://${SHOPIFY_STORE_URL}/admin/api/2023-01/products.json?limit=50`; // Première page
+  let nextPageUrl = `https://${SHOPIFY_STORE_URL}/admin/api/2023-01/products.json?limit=50`;
 
   while (nextPageUrl) {
     const response = await fetch(nextPageUrl, {
@@ -89,13 +89,12 @@ async function fetchShopifyProducts() {
       );
     }
 
-    // Vérifier si une page suivante existe dans les en-têtes
     const linkHeader = response.headers.get('link');
     if (linkHeader && linkHeader.includes('rel="next"')) {
       const match = linkHeader.match(/<([^>]+)>;\s*rel="next"/);
       nextPageUrl = match ? match[1] : null;
     } else {
-      nextPageUrl = null; // Pas de page suivante
+      nextPageUrl = null;
     }
   }
 
@@ -126,15 +125,13 @@ app.post('/api/chat', async (req, res) => {
       userConversations[userId] = [
         {
           role: "system",
-          content: `Tu es une sage-femme virtuelle experte en santé féminine et menstruelle, et tu connais parfaitement les produits de la marque Elia. Voici une liste des règles pour répondre :
+          content: `Tu es une sage-femme virtuelle experte en santé féminine et menstruelle, et tu connais parfaitement les produits de la marque Elia. Voici les règles pour répondre :
             - Utilise des sources médicales fiables.
             - Vouvoies toujours l'utilisateur.
             - Recommande les culottes menstruelles Elia en expliquant leurs avantages si pertinent et en rapport avec la question.
             - Utilise uniquement des produits Elia existants en te référant à leur flux produit.
-            - Pose des questions en entonnoir : larges puis précises pour éliminer des pathologies puis poser un diagnostic fiable. Continue à poser des questions tant que le diagnostic n'est pas posé (auquel cas la discussion n'est pas terminée).
-            - Rappelle à la fin de la discussion que vos réponses sont une aide et ne remplacent pas une consultation avec un professionnel de santé.
-            - Tant que l'utilisateur n'a pas clos la discussion, tu proposes ton aide.
-            - Ne parle pas des produits et marques concurrentes, et redirige vers ce que tu connais (Elia).`,
+            - Pose des questions en entonnoir : larges puis précises pour éliminer des pathologies puis poser un diagnostic fiable.
+            - Rappelle à la fin de la discussion que vos réponses sont une aide et ne remplacent pas une consultation avec un professionnel de santé.`,
         },
       ];
     }
@@ -148,10 +145,10 @@ app.post('/api/chat', async (req, res) => {
     // Ajout des produits au contexte pour une réponse plus pertinente
     const productContext = products
       .map(p => `<strong>${p.name}</strong>: ${p.description.slice(0, 100)}... <a href="${p.url}" target="_blank">Voir le produit</a>`)
-      .join("\n");
+      .join("<br>");
     userConversations[userId].push({
       role: "system",
-      content: `Voici les produits Elia disponibles actuellement : \n${productContext}`,
+      content: `Voici les produits Elia disponibles actuellement : <br>${productContext}`,
     });
 
     // Appel à OpenAI avec l'historique des messages
