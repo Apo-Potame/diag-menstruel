@@ -50,12 +50,14 @@
       background-color: #efe9de; /* Beige */
       color: #000; /* Noir */
       align-self: flex-start;
+      display: block; /* Force un affichage en bloc pour garantir une nouvelle ligne */
     }
     .message.waiting {
       font-style: italic;
       color: #888; /* Couleur grise pour indiquer un message temporaire */
       text-align: left;
       align-self: flex-start;
+      display: block; /* Toujours sur une nouvelle ligne */
     }
     #chat-input {
       display: flex;
@@ -126,6 +128,7 @@
       } else {
         messageDiv.textContent = message; // Texte brut pour l'utilisateur
       }
+      messageDiv.style.display = "block"; // Forcer chaque message à être sur une nouvelle ligne
       messagesContainer.appendChild(messageDiv);
       messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
