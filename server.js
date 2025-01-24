@@ -82,6 +82,47 @@ app.post('/api/chat', async (req, res) => {
   }
 });
 
+// Route pour tester directement l'API OpenAI
+app.get('/test-openai', async (req, res) => {
+  const apiKey = process.env.OPENAI_API_KEY;
+
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: "gpt-3.5-turbo",
+        messages: [{ role: "user", content: "Test de l'API OpenAI" }],
+        max_tokens: 50,
+      }),
+    });
+
+    const data = await response.json();
+
+    // Log de la réponse brute
+    console.log("Réponse brute de l'API OpenAI (test) :", data);
+
+    if (!response.ok || data.error) {
+      console.error("Erreur API OpenAI (test) :", data.error || data);
+      return res.status(500).json({
+        error: "Erreur avec l'API OpenAI (test).",
+        details: data.error || "Réponse invalide de l'API."
+      });
+    }
+
+    res.json({ reply: data.choices[0].message.content });
+  } catch (error) {
+    console.error("Erreur lors de la requête de test :", error.message || error);
+    res.status(500).json({
+      error: "Erreur lors du test de l'API.",
+      details: error.message || "Une erreur inattendue est survenue."
+    });
+  }
+});
+
 // Lancement du serveur
 app.listen(PORT, () => {
   console.log(`Serveur en cours d'exécution sur http://localhost:${PORT}`);
