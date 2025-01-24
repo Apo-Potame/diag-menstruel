@@ -22,17 +22,13 @@
       border-radius: 8px;
       background-color: #fff; /* Blanc */
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-      display: flex;
-      flex-direction: column;
     }
     #chat-messages {
-      flex: 1;
+      height: 400px;
       overflow-y: auto;
       padding: 16px;
       border-bottom: 2px solid #000; /* Noir */
       background-color: #fff; /* Blanc */
-      display: flex;
-      flex-direction: column;
     }
     .message {
       margin-bottom: 12px;
@@ -40,6 +36,7 @@
       border-radius: 8px;
       display: inline-block;
       max-width: 80%;
+      white-space: pre-wrap; /* Respecter les sauts de ligne */
     }
     .message.user {
       background-color: #000; /* Noir */
@@ -51,10 +48,9 @@
       color: #000; /* Noir */
       align-self: flex-start;
     }
-    .message.temp {
+    .message.waiting {
       font-style: italic;
-      color: #555; /* Gris */
-      align-self: flex-start;
+      color: #555;
     }
     #chat-input {
       display: flex;
@@ -120,15 +116,34 @@
     function displayMessage(message, sender, isHTML = false) {
       const messageDiv = document.createElement("div");
       messageDiv.classList.add("message", sender);
-
       if (isHTML) {
-        messageDiv.innerHTML = message; // Ajoute du contenu HTML
+        messageDiv.innerHTML = message; // Insérer du HTML pour les réponses formatées
       } else {
-        messageDiv.textContent = message; // Ajoute du texte brut
+        messageDiv.textContent = message; // Texte brut pour l'utilisateur
       }
-
       messagesContainer.appendChild(messageDiv);
       messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    // Afficher un message d'attente temporaire
+    function showWaitingMessage() {
+      const waitingMessage = document.createElement("div");
+      waitingMessage.classList.add("message", "bot", "waiting");
+      waitingMessage.textContent = "Votre sage-femme est en train de vous répondre...";
+      messagesContainer.appendChild(waitingMessage);
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      return waitingMessage;
+    }
+
+    // Afficher une réponse progressivement (effet de typewriter)
+    async function typeResponse(message) {
+      const typingDelay = 30; // Délai entre chaque caractère (en ms)
+      let currentText = "";
+      for (let i = 0; i < message.length; i++) {
+        currentText += message[i];
+        messagesContainer.lastChild.innerHTML = currentText;
+        await new Promise((resolve) => setTimeout(resolve, typingDelay));
+      }
     }
 
     // Envoyer une requête au backend
@@ -140,11 +155,8 @@
       displayMessage(userMessage, "user");
       userInput.value = "";
 
-      // Affiche un message temporaire
-      const tempMessageDiv = document.createElement("div");
-      tempMessageDiv.classList.add("message", "temp");
-      tempMessageDiv.textContent = "Votre sage-femme est en train de vous répondre…";
-      messagesContainer.appendChild(tempMessageDiv);
+      // Affiche le message d'attente
+      const waitingMessage = showWaitingMessage();
 
       try {
         const response = await fetch("/api/chat", {
@@ -153,25 +165,25 @@
           body: JSON.stringify({ userMessage, userId }),
         });
 
-        // Délai de 2 secondes avant de montrer la réponse
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-
         const data = await response.json();
-
-        // Supprime le message temporaire
-        tempMessageDiv.remove();
+        messagesContainer.removeChild(waitingMessage); // Retire le message d'attente
 
         if (data && data.reply) {
-          displayMessage(data.reply, "bot", true); // Ajoute la réponse en HTML
+          const botMessageDiv = document.createElement("div");
+          botMessageDiv.classList.add("message", "bot");
+          botMessageDiv.innerHTML = ""; // Préparation à l'effet de typewriter
+          messagesContainer.appendChild(botMessageDiv);
+          await typeResponse(data.reply); // Affichage progressif de la réponse
         } else {
-          displayMessage("Je n'ai pas pu obtenir de réponse. Réessayez plus tard.", "bot");
+          displayMessage(
+            "Je n'ai pas pu obtenir de réponse. Réessayez plus tard.",
+            "bot"
+          );
           console.error("Réponse invalide du backend :", data);
         }
       } catch (error) {
+        messagesContainer.removeChild(waitingMessage); // Retire le message d'attente en cas d'erreur
         console.error("Erreur côté frontend :", error);
-
-        // Supprime le message temporaire et affiche une erreur
-        tempMessageDiv.remove();
         displayMessage("Une erreur est survenue. Réessayez plus tard.", "bot");
       }
     }
