@@ -49,7 +49,7 @@ async function callOpenAI(messages, maxTokens = 500) {
   return data.choices[0].message.content;
 }
 
-// Fonction pour récupérer les produits depuis Shopify
+// Fonction pour récupérer les produits depuis Shopify avec leurs descriptifs
 async function fetchShopifyProducts() {
   const SHOPIFY_ACCESS_TOKEN = process.env.SHOPIFY_ACCESS_TOKEN;
   const SHOPIFY_STORE_URL = process.env.SHOPIFY_STORE_URL;
@@ -74,10 +74,14 @@ async function fetchShopifyProducts() {
     throw new Error(`Erreur API Shopify: ${data.errors || response.statusText}`);
   }
 
-  return data.products.map(product => ({
-    name: product.title,
-    url: `https://${SHOPIFY_STORE_URL}/products/${product.handle}`,
-  }));
+  // Filtrer les produits actifs et récupérer leurs informations principales
+  return data.products
+    .filter(product => product.published_at) // Ne garder que les produits actifs
+    .map(product => ({
+      name: product.title,
+      description: product.body_html.replace(/<[^>]*>/g, ''), // Supprimer les balises HTML des descriptions
+      url: `https://${SHOPIFY_STORE_URL}/products/${product.handle}`,
+    }));
 }
 
 // Servir l'interface HTML
@@ -111,8 +115,8 @@ app.post('/api/chat', async (req, res) => {
             - Utilise uniquement des produits Elia existants en te référant à leur flux produit.
             - Pose des questions en entonnoir : larges puis précises pour éliminer des pathologies puis poser un diagnostic fiable. Continue à poser des questions tant que le diagnostic n'est pas posé (auquel cas la discussion n'est pas terminée).
             - Rappele à la fin de la discussion que vos réponses sont une aide et ne remplacent pas une consultation avec un professionnel de santé.
-            - Tant que l'utilisateur n'a pas clos la discussion, tu propose ton aide
-            - ne parle pas des produits et marques concurrentes, et redirige vers ce que tu connais (Elia)`,
+            - Tant que l'utilisateur n'a pas clos la discussion, tu proposes ton aide.
+            - Ne parle pas des produits et marques concurrentes, et redirige vers ce que tu connais (Elia).`,
         },
       ];
     }
@@ -124,7 +128,9 @@ app.post('/api/chat', async (req, res) => {
     const products = await fetchShopifyProducts();
 
     // Ajout des produits au contexte pour une réponse plus pertinente
-    const productContext = products.map(p => `<a href="${p.url}" target="_blank">${p.name}</a>`).join("\n");
+    const productContext = products
+      .map(p => `<strong>${p.name}</strong>: ${p.description.slice(0, 100)}... <a href="${p.url}" target="_blank">Voir le produit</a>`)
+      .join("\n");
     userConversations[userId].push({
       role: "system",
       content: `Voici les produits Elia disponibles actuellement : \n${productContext}`,
