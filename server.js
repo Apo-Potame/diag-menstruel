@@ -49,7 +49,7 @@ async function callOpenAI(messages, maxTokens = 500) {
   return data.choices[0].message.content;
 }
 
-// Fonction pour récupérer les produits depuis Shopify avec leurs descriptifs
+// Fonction pour récupérer les produits depuis Shopify
 async function fetchShopifyProducts() {
   const SHOPIFY_ACCESS_TOKEN = process.env.SHOPIFY_ACCESS_TOKEN;
   const SHOPIFY_STORE_URL = process.env.SHOPIFY_STORE_URL;
@@ -71,15 +71,19 @@ async function fetchShopifyProducts() {
   const data = await response.json();
 
   if (!response.ok || data.errors) {
+    console.error("Erreur API Shopify :", data.errors || response.statusText);
     throw new Error(`Erreur API Shopify: ${data.errors || response.statusText}`);
   }
 
-  // Filtrer les produits actifs et récupérer leurs informations principales
+  // Log pour vérifier les produits récupérés
+  console.log("Produits récupérés depuis Shopify :", data.products);
+
+  // Retourner les produits actifs avec leurs descriptions
   return data.products
-    .filter(product => product.published_at) // Ne garder que les produits actifs
+    .filter(product => product.published_at) // Filtrer uniquement les produits actifs
     .map(product => ({
       name: product.title,
-      description: product.body_html.replace(/<[^>]*>/g, ''), // Supprimer les balises HTML des descriptions
+      description: product.body_html.replace(/<[^>]*>/g, ''), // Nettoyer les descriptions
       url: `https://${SHOPIFY_STORE_URL}/products/${product.handle}`,
     }));
 }
@@ -154,7 +158,7 @@ app.post('/api/chat', async (req, res) => {
 });
 
 // Route de test pour vérifier l'API Shopify
-app.get('/test-shopify', async (req, res) => {
+app.get('/api/test-products', async (req, res) => {
   try {
     const products = await fetchShopifyProducts();
     res.json({ products });
@@ -168,7 +172,7 @@ app.get('/test-shopify', async (req, res) => {
 });
 
 // Route de test pour vérifier l'API OpenAI
-app.get('/test-openai', async (req, res) => {
+app.get('/api/test-openai', async (req, res) => {
   try {
     const reply = await callOpenAI([{ role: "user", content: "Test de l'API OpenAI" }], 50);
     res.json({ reply });
