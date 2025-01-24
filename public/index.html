@@ -47,6 +47,10 @@
       color: #000; /* Noir */
       align-self: flex-start;
     }
+    .message.temp {
+      font-style: italic;
+      color: #555; /* Gris */
+    }
     #chat-input {
       display: flex;
       padding: 8px;
@@ -113,9 +117,9 @@
       messageDiv.classList.add("message", sender);
 
       if (isHTML) {
-        messageDiv.innerHTML = message; // Affiche le contenu HTML (pour les liens)
+        messageDiv.innerHTML = message; // Ajoute du contenu HTML
       } else {
-        messageDiv.textContent = message; // Affiche du texte brut
+        messageDiv.textContent = message; // Ajoute du texte brut
       }
 
       messagesContainer.appendChild(messageDiv);
@@ -131,6 +135,10 @@
       displayMessage(userMessage, "user");
       userInput.value = "";
 
+      // Affiche un message temporaire "Votre sage-femme est en train de vous répondre"
+      const tempMessageId = `temp-${Date.now()}`;
+      displayMessage("Votre sage-femme est en train de vous répondre…", "bot temp", false);
+
       try {
         const response = await fetch("/api/chat", {
           method: "POST",
@@ -139,24 +147,28 @@
         });
 
         const data = await response.json();
+
+        // Supprime le message temporaire
+        document.querySelector(`.temp`).remove();
+
         if (data && data.reply) {
-          displayMessage(data.reply, "bot", true); // Passe `isHTML` à `true` pour interpréter les liens HTML
+          displayMessage(data.reply, "bot", true); // Ajoute la réponse en HTML
         } else {
           displayMessage("Je n'ai pas pu obtenir de réponse. Réessayez plus tard.", "bot");
           console.error("Réponse invalide du backend :", data);
         }
       } catch (error) {
         console.error("Erreur côté frontend :", error);
+
+        // Supprime le message temporaire et affiche une erreur
+        document.querySelector(`.temp`).remove();
         displayMessage("Une erreur est survenue. Réessayez plus tard.", "bot");
       }
     }
 
     // Ajouter un message de bienvenue automatique
     window.onload = () => {
-      displayMessage(
-        "Bonjour ! Je suis votre sage-femme virtuelle. Je vais vous poser quelques questions pour mieux comprendre votre problème. N'hésitez pas à répondre en détail.",
-        "bot"
-      );
+      displayMessage("Bonjour ! Je suis votre sage-femme virtuelle. Je vais vous poser quelques questions pour comprendre votre problème. N'hésitez pas à me répondre en détail !", "bot");
     };
 
     // Événement bouton envoyer
