@@ -52,12 +52,21 @@
       padding: 8px;
       background-color: #fff; /* Blanc */
     }
-    #user-input {
-      flex: 1;
-      padding: 8px;
-      border: 2px solid #000; /* Noir */
-      border-radius: 4px;
-    }
+   #user-input {
+    flex: 1;
+    padding: 8px;
+    border: 2px solid #000; /* Noir */
+    border-radius: 4px;
+    height: 50px; /* Augmentez la hauteur */
+    resize: none; /* Empêche le redimensionnement */
+    overflow-y: hidden; /* Cache le défilement vertical si nécessaire */
+    line-height: 1.2; /* Ajuste l'espacement des lignes */
+  }
+
+  #user-input::placeholder {
+    white-space: pre-wrap; /* Permet le retour à la ligne */
+    line-height: 1.2; /* Ajuste la hauteur des lignes */
+  }
     #send-button {
       padding: 8px 16px;
       margin-left: 8px;
