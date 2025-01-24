@@ -69,7 +69,7 @@ app.post('/api/chat', async (req, res) => {
         messages: [
           {
             role: "system",
-            content: "Tu es une sage-femme virtuelle experte en santé féminine et menstruelle. Réponds de manière claire et rassurante."
+            content: "Tu es une sage-femme virtuelle experte en santé féminine et menstruelle. Réponds de manière claire et rassurante, mais tes réponses sont juste une aide au diagnostic et ne remplace pas une visite médicale chez un pro de santé."
           },
           { role: "user", content: userMessage }
         ],
