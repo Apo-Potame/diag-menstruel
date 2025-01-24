@@ -8,6 +8,7 @@ const PORT = process.env.PORT || 3000;
 
 // Stocker les historiques des conversations
 const userConversations = {};
+const MAX_HISTORY_LENGTH = 20; // Limite de l'historique à 20 messages
 
 // Middleware pour traiter les requêtes JSON et ajouter des headers CORS
 app.use(bodyParser.json());
@@ -83,7 +84,7 @@ async function fetchShopifyProducts() {
           .filter(product => product.published_at) // Filtrer uniquement les produits actifs
           .map(product => ({
             name: product.title,
-            description: product.body_html.replace(/<[^>]*>/g, ''), // Nettoyer les descriptions HTML
+            description: product.body_html.replace(/<[^>]*>/g, '').slice(0, 500), // Limiter les descriptions à 500 caractères
             url: `https://${SHOPIFY_STORE_URL}/products/${product.handle}`,
           }))
       );
@@ -139,6 +140,11 @@ app.post('/api/chat', async (req, res) => {
 
     // Ajouter le message de l'utilisateur à l'historique
     userConversations[userId].push({ role: "user", content: userMessage });
+
+    // Limiter l'historique à 20 messages
+    if (userConversations[userId].length > MAX_HISTORY_LENGTH) {
+      userConversations[userId] = userConversations[userId].slice(-MAX_HISTORY_LENGTH);
+    }
 
     // Récupération des produits Shopify
     const products = await fetchShopifyProducts();
