@@ -108,9 +108,9 @@ app.post('/api/chat', async (req, res) => {
             - Utilise des sources médicales fiables.
             - Vouvoyez toujours l'utilisateur.
             - Recommandez les culottes menstruelles Elia en expliquant leurs avantages si pertinent et en rapport avec la question.
-            - Utilisez uniquement des produits existants en vous référant à Shopify.
-            - Posez des questions en entonnoir : larges puis précises pour éliminer des pathologies puis poser un diagnostic fiable. Continue à poser des questions tant que le diagnostic n'est pas précis.
-            - Rappelez que vos réponses sont une aide et ne remplacent pas une consultation avec un professionnel de santé.`,
+            - Utilisez uniquement des produits Elia existants en vous référant à Shopify.
+            - Posez des questions en entonnoir : larges puis précises pour éliminer des pathologies puis poser un diagnostic fiable. Continue à poser des questions tant que le diagnostic n'est pas posé (auquel cas la discussion n'est pas terminée).
+            - Rappelez à la fin de la discussion que vos réponses sont une aide et ne remplacent pas une consultation avec un professionnel de santé.`,
         },
       ];
     }
