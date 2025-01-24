@@ -14,9 +14,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// Gestion de l'historique des conversations en mémoire (non persistant)
-const conversations = {};
-
 // Fonction utilitaire pour appeler l'API OpenAI
 async function callOpenAI(messages, maxTokens = 500) {
   if (!process.env.OPENAI_API_KEY) {
@@ -38,17 +35,46 @@ async function callOpenAI(messages, maxTokens = 500) {
 
   const data = await response.json();
 
-  // Vérification des erreurs dans la réponse
   if (!response.ok || data.error) {
     throw new Error(data.error?.message || "Erreur avec l'API OpenAI.");
   }
 
-  // Vérifie si 'choices' contient des données valides
   if (!data.choices || data.choices.length === 0) {
     throw new Error("Aucune réponse générée par l'API OpenAI.");
   }
 
   return data.choices[0].message.content;
+}
+
+// Fonction pour récupérer les produits depuis Shopify
+async function fetchShopifyProducts() {
+  const SHOPIFY_ACCESS_TOKEN = process.env.SHOPIFY_ACCESS_TOKEN;
+  const SHOPIFY_STORE_URL = process.env.SHOPIFY_STORE_URL;
+
+  if (!SHOPIFY_ACCESS_TOKEN || !SHOPIFY_STORE_URL) {
+    throw new Error("Les variables d'environnement Shopify ne sont pas configurées.");
+  }
+
+  const url = `https://${SHOPIFY_STORE_URL}/admin/api/2023-01/products.json`;
+
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Shopify-Access-Token': SHOPIFY_ACCESS_TOKEN,
+    },
+  });
+
+  const data = await response.json();
+
+  if (!response.ok || data.errors) {
+    throw new Error(`Erreur API Shopify: ${data.errors || response.statusText}`);
+  }
+
+  return data.products.map(product => ({
+    name: product.title,
+    url: `https://${SHOPIFY_STORE_URL}/products/${product.handle}`,
+  }));
 }
 
 // Servir l'interface HTML
@@ -60,56 +86,52 @@ app.get('/', (req, res) => {
 // Route pour le chatbot
 app.post('/api/chat', async (req, res) => {
   const userMessage = req.body.userMessage;
-  const userId = req.body.userId; // Identifiant unique pour chaque utilisateur
+  const userId = req.body.userId;
 
-  // Vérifie que le message utilisateur est fourni
   if (!userMessage || !userId) {
-    console.error("Erreur : Message utilisateur ou userId manquant.");
-    return res.status(400).json({ error: "Message utilisateur ou userId manquant." });
-  }
-
-  // Initialiser l'historique si c'est le premier message de cet utilisateur
-  if (!conversations[userId]) {
-    conversations[userId] = [
-      {
-        role: "system",
-        content: `
-          Vous êtes une sage-femme virtuelle experte en santé féminine et menstruelle. 
-          Vos réponses doivent :
-          - Être basées sur des sources médicales fiables.
-          - Toujours vouvoyer l'utilisateur pour maintenir une communication respectueuse et professionnelle.
-          - Si l'utilisateur mentionne les culottes menstruelles, recommander les culottes menstruelles Elia en expliquant leurs avantages.
-          - Ajouter des liens cliquables vers les pages pertinentes de www.elia-lingerie.com, au format HTML, pour répondre à la problématique posée.
-          - Poser des questions larges pour commencer, puis des questions de plus en plus précises afin d’affiner le diagnostic.
-          - Toujours rappeler que vos réponses sont une aide et ne remplacent pas une consultation avec un professionnel de santé.
-        `
-      }
-    ];
+    console.error("Erreur : Le message utilisateur ou l'ID utilisateur est vide.");
+    return res.status(400).json({ error: "Le message utilisateur ou l'ID utilisateur est vide." });
   }
 
   try {
-    console.log(`Message utilisateur reçu (${userId}) :`, userMessage);
+    console.log(`Message utilisateur reçu [${userId}] :`, userMessage);
 
-    // Ajouter le message utilisateur à l'historique
-    conversations[userId].push({ role: "user", content: userMessage });
+    // Récupération des produits Shopify
+    const products = await fetchShopifyProducts();
 
-    // Appeler l'API OpenAI avec l'historique complet
-    const reply = await callOpenAI(conversations[userId]);
+    // Préparation des informations des produits pour le contexte du chatbot
+    const productContext = products.map(p => `${p.name}: ${p.url}`).join("\n");
 
-    // Ajouter la réponse de l'assistant à l'historique
-    conversations[userId].push({ role: "assistant", content: reply });
+    // Appel à OpenAI avec un contexte spécifique pour Elia
+    const reply = await callOpenAI([
+      {
+        role: "system",
+        content: `Tu es une sage-femme virtuelle experte en santé féminine et menstruelle, et tu connais parfaitement les produits de la marque Elia. Voici une liste des produits Elia disponibles : \n${productContext}\nN'invente jamais des produits ou des liens inexistants. Utilise uniquement cette liste pour répondre.`,
+      },
+      { role: "user", content: userMessage }
+    ]);
 
-    console.log(`Réponse générée (${userId}) :`, reply);
-
-    // Vérifier si la réponse contient des liens vers Elia et les rendre cliquables
-    const formattedReply = reply.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>');
-
-    res.json({ reply: formattedReply }); // Envoi de la réponse formatée au frontend
+    console.log(`Réponse générée [${userId}] :`, reply);
+    res.json({ reply }); // Envoi de la réponse au frontend
   } catch (error) {
     console.error("Erreur dans le backend :", error.message || error);
     res.status(500).json({
       error: "Erreur du serveur.",
-      details: error.message || "Une erreur inattendue est survenue."
+      details: error.message || "Une erreur inattendue est survenue.",
+    });
+  }
+});
+
+// Route de test pour vérifier l'API Shopify
+app.get('/test-shopify', async (req, res) => {
+  try {
+    const products = await fetchShopifyProducts();
+    res.json({ products });
+  } catch (error) {
+    console.error("Erreur lors du test Shopify :", error.message || error);
+    res.status(500).json({
+      error: "Erreur lors du test Shopify.",
+      details: error.message,
     });
   }
 });
@@ -117,14 +139,13 @@ app.post('/api/chat', async (req, res) => {
 // Route de test pour vérifier l'API OpenAI
 app.get('/test-openai', async (req, res) => {
   try {
-    // Appel simple à l'API OpenAI pour tester la connectivité
     const reply = await callOpenAI([{ role: "user", content: "Test de l'API OpenAI" }], 50);
     res.json({ reply });
   } catch (error) {
-    console.error("Erreur lors du test :", error.message || error);
+    console.error("Erreur lors du test OpenAI :", error.message || error);
     res.status(500).json({
-      error: "Erreur lors du test de l'API.",
-      details: error.message || "Une erreur inattendue est survenue."
+      error: "Erreur lors du test OpenAI.",
+      details: error.message,
     });
   }
 });
