@@ -51,6 +51,7 @@
       background-color: #efe9de; /* Beige */
       color: #000; /* Noir */
       align-self: flex-start;
+      min-height: 20px; /* Réserve de l’espace pour les réponses courtes */
     }
     .message.waiting {
       font-style: italic;
@@ -107,6 +108,7 @@
     const userInput = document.getElementById("user-input");
     const sendButton = document.getElementById("send-button");
 
+    // Générer un identifiant unique pour chaque utilisateur
     let userId = localStorage.getItem("userId");
     if (!userId) {
       userId = crypto.randomUUID();
