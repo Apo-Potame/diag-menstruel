@@ -41,7 +41,6 @@
       display: block; /* Toujours sur une nouvelle ligne */
       max-width: 80%;
       white-space: pre-wrap; /* Respecter les sauts de ligne */
-      min-height: 20px; /* Garde une hauteur minimale pour les messages courts */
     }
     .message.user {
       background-color: #000; /* Noir */
@@ -177,8 +176,12 @@
         messagesContainer.removeChild(waitingMessage); // Supprime le message d'attente
 
         if (data && data.reply) {
-          const botMessageDiv = displayMessage("&nbsp;", "bot", true); // Pré-créer un conteneur avec un espace réservé
-          await typeResponse(data.reply, botMessageDiv); // Typewriter effect
+          const botMessageDiv = document.createElement("div");
+          botMessageDiv.classList.add("message", "bot");
+          botMessageDiv.innerHTML = "&nbsp;"; // Place un conteneur vide mais toujours visible
+          messagesContainer.appendChild(botMessageDiv);
+
+          await typeResponse(data.reply, botMessageDiv); // Effet typewriter
         } else {
           displayMessage(
             "Je n'ai pas pu obtenir de réponse. Réessayez plus tard.",
