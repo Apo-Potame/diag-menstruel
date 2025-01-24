@@ -29,6 +29,8 @@
       padding: 16px;
       border-bottom: 2px solid #000; /* Noir */
       background-color: #fff; /* Blanc */
+      display: flex;
+      flex-direction: column;
     }
     .message {
       margin-bottom: 12px;
@@ -37,6 +39,7 @@
       display: inline-block;
       max-width: 80%;
       white-space: pre-wrap; /* Respecter les sauts de ligne */
+      clear: both; /* Assure que chaque message commence sur une nouvelle ligne */
     }
     .message.user {
       background-color: #000; /* Noir */
@@ -126,14 +129,18 @@
       messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
 
-    // Afficher un message d'attente temporaire
-    function showWaitingMessage() {
-      const waitingMessage = document.createElement("div");
-      waitingMessage.classList.add("message", "bot", "waiting");
-      waitingMessage.textContent = "Votre sage-femme est en train de vous répondre...";
-      messagesContainer.appendChild(waitingMessage);
-      messagesContainer.scrollTop = messagesContainer.scrollHeight;
-      return waitingMessage;
+    // Afficher un message d'attente temporaire après un délai de 0.5s
+    async function showWaitingMessage() {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          const waitingMessage = document.createElement("div");
+          waitingMessage.classList.add("message", "bot", "waiting");
+          waitingMessage.textContent = "Votre sage-femme est en train de vous répondre...";
+          messagesContainer.appendChild(waitingMessage);
+          messagesContainer.scrollTop = messagesContainer.scrollHeight;
+          resolve(waitingMessage);
+        }, 500);
+      });
     }
 
     // Effet de typewriter pour afficher progressivement une réponse
@@ -156,8 +163,8 @@
       displayMessage(userMessage, "user");
       userInput.value = "";
 
-      // Affiche le message d'attente
-      const waitingMessage = showWaitingMessage();
+      // Affiche le message d'attente après 0.5s
+      const waitingMessage = await showWaitingMessage();
 
       try {
         const response = await fetch("/api/chat", {
