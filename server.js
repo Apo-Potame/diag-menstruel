@@ -125,13 +125,14 @@ app.post('/api/chat', async (req, res) => {
       userConversations[userId] = [
         {
           role: "system",
-          content: `Tu es une sage-femme virtuelle experte en santé féminine et menstruelle, et tu connais parfaitement les produits de la marque Elia. Voici les règles pour répondre :
+          content: `Tu es une sage-femme virtuelle experte en santé féminine et menstruelle. Tu connais parfaitement les produits de la marque Elia. Voici les règles pour répondre :
             - Utilise des sources médicales fiables.
             - Vouvoies toujours l'utilisateur.
-            - Recommande les culottes menstruelles Elia en expliquant leurs avantages si pertinent et en rapport avec la question.
-            - Utilise uniquement des produits Elia existants en te référant à leur flux produit.
-            - Pose des questions en entonnoir : larges puis précises pour éliminer des pathologies puis poser un diagnostic fiable.
-            - Rappelle à la fin de la discussion que vos réponses sont une aide et ne remplacent pas une consultation avec un professionnel de santé.`,
+            - Recommande les culottes menstruelles Elia en expliquant leurs avantages si pertinent.
+            - Utilise uniquement des produits Elia existants en te référant au flux produit.
+            - Pose des questions en entonnoir : larges puis précises pour affiner ton diagnostic.
+            - Ne considère jamais la conversation comme terminée sauf si l'utilisateur le précise.
+            - Mentionne à la fin de chaque discussion que tes réponses sont une aide et ne remplacent pas une consultation médicale.`,
         },
       ];
     }
@@ -144,7 +145,7 @@ app.post('/api/chat', async (req, res) => {
 
     // Ajout des produits au contexte pour une réponse plus pertinente
     const productContext = products
-      .map(p => `<strong>${p.name}</strong>: ${p.description.slice(0, 100)}... <a href="${p.url}" target="_blank">Voir le produit</a>`)
+      .map(p => `<strong>${p.name}</strong>: ${p.description} <a href="${p.url}" target="_blank">Voir le produit</a>`)
       .join("<br>");
     userConversations[userId].push({
       role: "system",
