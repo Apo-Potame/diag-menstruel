@@ -25,7 +25,7 @@ app.post('/api/chat', async (req, res) => {
   }
 
   try {
-    // Envoi de la requête à l'API OpenAI
+    // Envoi de la requête à l'API OpenAI avec le modèle gpt-3.5-turbo
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -33,7 +33,7 @@ app.post('/api/chat', async (req, res) => {
         'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`, // Utilisation de la clé API depuis le fichier .env
       },
       body: JSON.stringify({
-        model: "gpt-4", // Modèle utilisé, ajustez si nécessaire
+        model: "gpt-3.5-turbo", // Modèle utilisé
         messages: [
           {
             role: "system",
