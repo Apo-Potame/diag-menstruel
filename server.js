@@ -84,7 +84,7 @@ async function fetchShopifyProducts() {
           .filter(product => product.published_at) // Filtrer uniquement les produits actifs
           .map(product => ({
             name: product.title,
-            description: product.body_html.replace(/<[^>]*>/g, '').slice(0, 400), // Limiter les descriptions à 400 caractères
+            description: product.body_html.replace(/<[^>]*>/g, '').slice(0, 300), // Limiter les descriptions à 300 caractères
             url: `https://${SHOPIFY_STORE_URL}/products/${product.handle}`,
           }))
       );
@@ -121,7 +121,7 @@ app.post('/api/chat', async (req, res) => {
   try {
     console.log(`Message utilisateur reçu [${userId}] :`, userMessage);
 
-    // Récupération ou initialisation de l'historique des conversations
+    // Initialiser l'historique des conversations s'il n'existe pas
     if (!userConversations[userId]) {
       userConversations[userId] = [
         {
@@ -131,20 +131,22 @@ app.post('/api/chat', async (req, res) => {
             - Vouvoies toujours l'utilisateur.
             - Recommande les culottes menstruelles Elia en expliquant leurs avantages si pertinent.
             - Utilise uniquement des produits Elia existants en te référant au flux produit.
-            - Pose des questions en entonnoir : larges puis précises pour affiner ton diagnostic.
+            - Pose des questions en entonnoir pour affiner ton diagnostic. Une ou deux questions par message max.
             - Ne considère jamais la conversation comme terminée sauf si l'utilisateur le précise.
             - Mentionne à la fin de chaque discussion que tes réponses sont une aide et ne remplacent pas une consultation médicale.`,
         },
       ];
     }
 
-    // Ajouter le message de l'utilisateur à l'historique
+    // Ajouter uniquement le message utilisateur à l'historique
     userConversations[userId].push({ role: "user", content: userMessage });
 
-    // Limiter l'historique à 20 messages
-    if (userConversations[userId].length > MAX_HISTORY_LENGTH) {
-      userConversations[userId] = userConversations[userId].slice(-MAX_HISTORY_LENGTH);
-    }
+    // Limiter l'historique à 20 messages utilisateur
+    const limitedHistory = userConversations[userId].filter(msg => msg.role === "user").slice(-MAX_HISTORY_LENGTH);
+    const messagesToSend = [
+      userConversations[userId][0], // Inclure le message système
+      ...limitedHistory,
+    ];
 
     // Récupération des produits Shopify
     const products = await fetchShopifyProducts();
@@ -153,13 +155,13 @@ app.post('/api/chat', async (req, res) => {
     const productContext = products
       .map(p => `<strong>${p.name}</strong>: ${p.description} <a href="${p.url}" target="_blank">Voir le produit</a>`)
       .join("<br>");
-    userConversations[userId].push({
+    messagesToSend.push({
       role: "system",
       content: `Voici les produits Elia disponibles actuellement : <br>${productContext}`,
     });
 
     // Appel à OpenAI avec l'historique des messages
-    const reply = await callOpenAI(userConversations[userId]);
+    const reply = await callOpenAI(messagesToSend);
 
     // Ajouter la réponse de l'OpenAI à l'historique
     userConversations[userId].push({ role: "assistant", content: reply });
