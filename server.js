@@ -84,7 +84,7 @@ async function fetchShopifyProducts() {
           .filter(product => product.published_at) // Filtrer uniquement les produits actifs
           .map(product => ({
             name: product.title,
-            description: product.body_html.replace(/<[^>]*>/g, '').slice(0, 500), // Limiter les descriptions à 500 caractères
+            description: product.body_html.replace(/<[^>]*>/g, '').slice(0, 400), // Limiter les descriptions à 400 caractères
             url: `https://${SHOPIFY_STORE_URL}/products/${product.handle}`,
           }))
       );
