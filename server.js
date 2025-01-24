@@ -58,34 +58,43 @@ async function fetchShopifyProducts() {
     throw new Error("Les variables d'environnement Shopify ne sont pas configurées.");
   }
 
-  const url = `https://${SHOPIFY_STORE_URL}/admin/api/2023-01/products.json`;
+  let products = [];
+  let page = 1;
+  const limit = 50; // Shopify retourne un maximum de 50 produits par page
+  let hasMore = true;
 
-  const response = await fetch(url, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Shopify-Access-Token': SHOPIFY_ACCESS_TOKEN,
-    },
-  });
+  while (hasMore) {
+    const url = `https://${SHOPIFY_STORE_URL}/admin/api/2023-01/products.json?limit=${limit}&page=${page}`;
 
-  const data = await response.json();
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Shopify-Access-Token': SHOPIFY_ACCESS_TOKEN,
+      },
+    });
 
-  if (!response.ok || data.errors) {
-    console.error("Erreur API Shopify :", data.errors || response.statusText);
-    throw new Error(`Erreur API Shopify: ${data.errors || response.statusText}`);
+    const data = await response.json();
+
+    if (!response.ok || data.errors) {
+      console.error("Erreur API Shopify :", data.errors || response.statusText);
+      throw new Error(`Erreur API Shopify: ${data.errors || response.statusText}`);
+    }
+
+    products = products.concat(
+      data.products.map(product => ({
+        name: product.title,
+        description: product.body_html.replace(/<[^>]*>/g, ''), // Nettoyer les descriptions
+        url: `https://${SHOPIFY_STORE_URL}/products/${product.handle}`,
+      }))
+    );
+
+    console.log(`Page ${page} récupérée, ${data.products.length} produits`);
+    page++;
+    hasMore = data.products.length === limit; // Si moins de 50 produits, c'est la dernière page
   }
 
-  // Log pour vérifier les produits récupérés
-  console.log("Produits récupérés depuis Shopify :", data.products);
-
-  // Retourner les produits actifs avec leurs descriptions
-  return data.products
-    .filter(product => product.published_at) // Filtrer uniquement les produits actifs
-    .map(product => ({
-      name: product.title,
-      description: product.body_html.replace(/<[^>]*>/g, ''), // Nettoyer les descriptions
-      url: `https://${SHOPIFY_STORE_URL}/products/${product.handle}`,
-    }));
+  return products;
 }
 
 // Servir l'interface HTML
