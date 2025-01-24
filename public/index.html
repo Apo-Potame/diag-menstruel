@@ -108,10 +108,16 @@
     console.log("Identifiant utilisateur :", userId);
 
     // Fonction pour afficher un message
-    function displayMessage(message, sender) {
+    function displayMessage(message, sender, isHTML = false) {
       const messageDiv = document.createElement("div");
       messageDiv.classList.add("message", sender);
-      messageDiv.textContent = message;
+
+      if (isHTML) {
+        messageDiv.innerHTML = message; // Affiche le contenu HTML (pour les liens)
+      } else {
+        messageDiv.textContent = message; // Affiche du texte brut
+      }
+
       messagesContainer.appendChild(messageDiv);
       messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
@@ -134,7 +140,7 @@
 
         const data = await response.json();
         if (data && data.reply) {
-          displayMessage(data.reply, "bot");
+          displayMessage(data.reply, "bot", true); // Passe `isHTML` à `true` pour interpréter les liens HTML
         } else {
           displayMessage("Je n'ai pas pu obtenir de réponse. Réessayez plus tard.", "bot");
           console.error("Réponse invalide du backend :", data);
@@ -147,7 +153,10 @@
 
     // Ajouter un message de bienvenue automatique
     window.onload = () => {
-      displayMessage("Bonjour ! Je suis votre sage-femme virtuelle. Je vais vous poser quelques questions pour comprendre votre problème. N'hésitez pas à me répondre en détail !", "bot");
+      displayMessage(
+        "Bonjour ! Je suis votre sage-femme virtuelle. Je vais vous poser quelques questions pour mieux comprendre votre problème. N'hésitez pas à répondre en détail.",
+        "bot"
+      );
     };
 
     // Événement bouton envoyer
