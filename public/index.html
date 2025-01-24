@@ -14,56 +14,64 @@
       justify-content: center;
       align-items: center;
       height: 100vh;
-      overflow: hidden; /* Empêche le défilement du body */
+      overflow: hidden; /* Empêche le défilement de la page */
     }
+
     #chat-container {
       width: 400px;
       max-width: 90%;
-      height: 600px; /* Hauteur fixe pour les écrans moyens et grands */
+      height: 600px; /* Hauteur fixe par défaut */
       border: 2px solid #000; /* Noir */
       border-radius: 8px;
       background-color: #fff; /* Blanc */
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
       display: flex;
       flex-direction: column;
-      overflow: hidden; /* Empêche le conteneur global de s'étendre */
+      overflow: hidden; /* Empêche tout débordement */
     }
+
     #chat-messages {
-      flex: 1; /* Occupe tout l'espace restant */
-      overflow-y: auto; /* Active le défilement vertical si le contenu dépasse */
+      flex: 1; /* Remplit tout l'espace disponible */
+      overflow-y: auto; /* Active le défilement vertical */
       padding: 16px;
       border-bottom: 2px solid #000; /* Noir */
       background-color: #fff; /* Blanc */
       display: flex;
       flex-direction: column;
     }
+
     .message {
       margin-bottom: 12px;
       padding: 8px;
       border-radius: 8px;
       display: block; /* Toujours sur une nouvelle ligne */
       max-width: 80%;
-      white-space: pre-wrap; /* Respecter les sauts de ligne */
+      white-space: pre-wrap; /* Respecte les sauts de ligne */
     }
+
     .message.user {
       background-color: #000; /* Noir */
       color: #fff; /* Blanc */
       align-self: flex-end;
     }
+
     .message.bot {
       background-color: #efe9de; /* Beige */
       color: #000; /* Noir */
       align-self: flex-start;
     }
+
     .message.waiting {
       font-style: italic;
       color: #888; /* Gris clair pour le message temporaire */
     }
+
     #chat-input {
       display: flex;
       padding: 8px;
       background-color: #fff; /* Blanc */
     }
+
     #user-input {
       flex: 1;
       padding: 8px;
@@ -78,11 +86,13 @@
       min-height: 60px; /* Hauteur minimale */
       max-height: 100px; /* Hauteur maximale */
     }
+
     #user-input::placeholder {
       white-space: pre-wrap; /* Permet au texte de passer à la ligne */
       color: #aaa; /* Couleur du placeholder */
       font-style: italic; /* Style du placeholder */
     }
+
     #send-button {
       padding: 8px 16px;
       margin-left: 8px;
@@ -92,19 +102,21 @@
       border-radius: 4px;
       cursor: pointer;
     }
+
     #send-button:hover {
       background-color: #444; /* Gris foncé */
     }
 
-    /* Media queries pour différentes tailles d'écran */
-    @media (max-width: 768px) { /* Tablettes et petits écrans */
+    /* Media queries pour ajuster la hauteur sur différents écrans */
+    @media (max-width: 768px) { /* Tablettes */
       #chat-container {
-        height: 500px; /* Hauteur réduite pour les tablettes */
+        height: 500px; /* Hauteur réduite pour tablettes */
       }
     }
+
     @media (max-width: 480px) { /* Petits téléphones */
       #chat-container {
-        height: 400px; /* Hauteur réduite pour les petits téléphones */
+        height: 400px; /* Hauteur réduite pour petits téléphones */
       }
     }
   </style>
@@ -145,7 +157,7 @@
       return messageDiv;
     }
 
-    // Fonction pour afficher un message d'attente temporaire
+    // Afficher un message d'attente temporaire
     function showWaitingMessage() {
       return new Promise((resolve) => {
         setTimeout(() => {
