@@ -22,13 +22,17 @@
       border-radius: 8px;
       background-color: #fff; /* Blanc */
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      display: flex;
+      flex-direction: column;
     }
     #chat-messages {
-      height: 400px;
+      flex: 1;
       overflow-y: auto;
       padding: 16px;
       border-bottom: 2px solid #000; /* Noir */
       background-color: #fff; /* Blanc */
+      display: flex;
+      flex-direction: column;
     }
     .message {
       margin-bottom: 12px;
@@ -50,6 +54,7 @@
     .message.temp {
       font-style: italic;
       color: #555; /* Gris */
+      align-self: flex-start;
     }
     #chat-input {
       display: flex;
@@ -135,9 +140,11 @@
       displayMessage(userMessage, "user");
       userInput.value = "";
 
-      // Affiche un message temporaire "Votre sage-femme est en train de vous répondre"
-      const tempMessageId = `temp-${Date.now()}`;
-      displayMessage("Votre sage-femme est en train de vous répondre…", "bot temp", false);
+      // Affiche un message temporaire
+      const tempMessageDiv = document.createElement("div");
+      tempMessageDiv.classList.add("message", "temp");
+      tempMessageDiv.textContent = "Votre sage-femme est en train de vous répondre…";
+      messagesContainer.appendChild(tempMessageDiv);
 
       try {
         const response = await fetch("/api/chat", {
@@ -146,10 +153,13 @@
           body: JSON.stringify({ userMessage, userId }),
         });
 
+        // Délai de 2 secondes avant de montrer la réponse
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+
         const data = await response.json();
 
         // Supprime le message temporaire
-        document.querySelector(`.temp`).remove();
+        tempMessageDiv.remove();
 
         if (data && data.reply) {
           displayMessage(data.reply, "bot", true); // Ajoute la réponse en HTML
@@ -161,14 +171,17 @@
         console.error("Erreur côté frontend :", error);
 
         // Supprime le message temporaire et affiche une erreur
-        document.querySelector(`.temp`).remove();
+        tempMessageDiv.remove();
         displayMessage("Une erreur est survenue. Réessayez plus tard.", "bot");
       }
     }
 
     // Ajouter un message de bienvenue automatique
     window.onload = () => {
-      displayMessage("Bonjour ! Je suis votre sage-femme virtuelle. Je vais vous poser quelques questions pour comprendre votre problème. N'hésitez pas à me répondre en détail !", "bot");
+      displayMessage(
+        "Bonjour ! Je suis votre sage-femme virtuelle. Je vais vous poser quelques questions pour comprendre votre problème. N'hésitez pas à me répondre en détail !",
+        "bot"
+      );
     };
 
     // Événement bouton envoyer
