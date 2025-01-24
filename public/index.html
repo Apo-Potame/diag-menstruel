@@ -55,6 +55,7 @@
       font-style: italic;
       color: #888; /* Couleur grise pour indiquer un message temporaire */
       text-align: left;
+      align-self: flex-start;
     }
     #chat-input {
       display: flex;
@@ -129,7 +130,7 @@
       messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
 
-    // Afficher un message d'attente temporaire après un délai de 0.5s
+    // Afficher un message d'attente temporaire après un délai de 1 seconde
     async function showWaitingMessage() {
       return new Promise((resolve) => {
         setTimeout(() => {
@@ -139,7 +140,7 @@
           messagesContainer.appendChild(waitingMessage);
           messagesContainer.scrollTop = messagesContainer.scrollHeight;
           resolve(waitingMessage);
-        }, 500);
+        }, 1000);
       });
     }
 
@@ -163,7 +164,7 @@
       displayMessage(userMessage, "user");
       userInput.value = "";
 
-      // Affiche le message d'attente après 0.5s
+      // Affiche le message d'attente après 1 seconde
       const waitingMessage = await showWaitingMessage();
 
       try {
