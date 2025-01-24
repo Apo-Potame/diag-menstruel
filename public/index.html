@@ -50,7 +50,8 @@
       background-color: #efe9de; /* Beige */
       color: #000; /* Noir */
       align-self: flex-start;
-      display: block; /* Force un affichage en bloc pour garantir une nouvelle ligne */
+      display: block; /* Toujours sur une nouvelle ligne */
+      min-height: 30px; /* Garantir un espace pour l'effet typewriter */
     }
     .message.waiting {
       font-style: italic;
@@ -129,6 +130,7 @@
         messageDiv.textContent = message; // Texte brut pour l'utilisateur
       }
       messageDiv.style.display = "block"; // Forcer chaque message à être sur une nouvelle ligne
+      messageDiv.style.minHeight = "30px"; // Assurer un espace visible même avec un message court
       messagesContainer.appendChild(messageDiv);
       messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
