@@ -52,21 +52,25 @@
       padding: 8px;
       background-color: #fff; /* Blanc */
     }
-   #user-input {
-    flex: 1;
-    padding: 8px;
-    border: 2px solid #000; /* Noir */
-    border-radius: 4px;
-    height: 50px; /* Augmentez la hauteur */
-    resize: none; /* Empêche le redimensionnement */
-    overflow-y: hidden; /* Cache le défilement vertical si nécessaire */
-    line-height: 1.2; /* Ajuste l'espacement des lignes */
-  }
-
-  #user-input::placeholder {
-    white-space: pre-wrap; /* Permet le retour à la ligne */
-    line-height: 1.2; /* Ajuste la hauteur des lignes */
-  }
+    #user-input {
+      flex: 1;
+      padding: 8px;
+      border: 2px solid #000; /* Noir */
+      border-radius: 4px;
+      resize: none; /* Désactive le redimensionnement */
+      overflow-y: auto; /* Permet un défilement vertical si nécessaire */
+      line-height: 1.5; /* Ajuste l'espacement des lignes */
+      font-family: Arial, sans-serif; /* Style cohérent */
+      font-size: 14px; /* Taille de la police */
+      height: 50px; /* Hauteur initiale */
+      min-height: 50px; /* Hauteur minimale */
+      max-height: 100px; /* Hauteur maximale */
+    }
+    #user-input::placeholder {
+      white-space: pre-wrap; /* Permet au texte de passer à la ligne */
+      color: #aaa; /* Couleur du placeholder */
+      font-style: italic; /* Style du placeholder */
+    }
     #send-button {
       padding: 8px 16px;
       margin-left: 8px;
@@ -85,7 +89,7 @@
   <div id="chat-container">
     <div id="chat-messages"></div>
     <div id="chat-input">
-      <input type="text" id="user-input" placeholder="Une question de santé féminine ? Expliquez-moi votre problème !" />
+      <textarea id="user-input" placeholder="Une question de santé féminine ? Expliquez-moi votre problème ici, et je ferai de mon mieux pour vous aider."></textarea>
       <button id="send-button">Envoyer</button>
     </div>
   </div>
