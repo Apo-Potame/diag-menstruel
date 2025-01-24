@@ -18,19 +18,18 @@
     #chat-container {
       width: 400px;
       max-width: 90%;
-      height: 80vh; /* Hauteur fixe responsive */
-      max-height: 700px; /* Limite maximale pour grands écrans */
+      height: 600px; /* Hauteur par défaut */
       border: 2px solid #000; /* Noir */
       border-radius: 8px;
       background-color: #fff; /* Blanc */
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
       display: flex;
       flex-direction: column;
-      overflow: hidden; /* Empêche tout débordement */
+      overflow: hidden; /* Empêche les débordements */
     }
     #chat-messages {
       flex: 1;
-      overflow-y: auto; /* Permet un défilement si nécessaire */
+      overflow-y: auto; /* Active le défilement interne si nécessaire */
       padding: 16px;
       border-bottom: 2px solid #000; /* Noir */
       background-color: #fff; /* Blanc */
@@ -94,6 +93,18 @@
     }
     #send-button:hover {
       background-color: #444; /* Gris foncé */
+    }
+
+    /* Media queries pour différentes tailles d'écran */
+    @media (max-width: 768px) { /* Tablettes et petits écrans */
+      #chat-container {
+        height: 500px; /* Hauteur réduite */
+      }
+    }
+    @media (max-width: 480px) { /* Petits téléphones */
+      #chat-container {
+        height: 400px; /* Hauteur encore plus réduite */
+      }
     }
   </style>
 </head>
