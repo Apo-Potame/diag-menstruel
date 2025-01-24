@@ -49,7 +49,7 @@ async function callOpenAI(messages, maxTokens = 500) {
   return data.choices[0].message.content;
 }
 
-// Fonction pour récupérer les produits depuis Shopify
+// Fonction pour récupérer les produits depuis Shopify avec pagination
 async function fetchShopifyProducts() {
   const SHOPIFY_ACCESS_TOKEN = process.env.SHOPIFY_ACCESS_TOKEN;
   const SHOPIFY_STORE_URL = process.env.SHOPIFY_STORE_URL;
@@ -78,20 +78,25 @@ async function fetchShopifyProducts() {
 
     if (!response.ok || data.errors) {
       console.error("Erreur API Shopify :", data.errors || response.statusText);
-      throw new Error(`Erreur API Shopify: ${data.errors || response.statusText}`);
+      throw new Error(`Erreur API Shopify: ${JSON.stringify(data.errors || response.statusText)}`);
     }
 
-    products = products.concat(
-      data.products.map(product => ({
-        name: product.title,
-        description: product.body_html.replace(/<[^>]*>/g, ''), // Nettoyer les descriptions
-        url: `https://${SHOPIFY_STORE_URL}/products/${product.handle}`,
-      }))
-    );
-
-    console.log(`Page ${page} récupérée, ${data.products.length} produits`);
-    page++;
-    hasMore = data.products.length === limit; // Si moins de 50 produits, c'est la dernière page
+    if (data.products && data.products.length > 0) {
+      products = products.concat(
+        data.products
+          .filter(product => product.published_at) // Filtrer uniquement les produits actifs
+          .map(product => ({
+            name: product.title,
+            description: product.body_html.replace(/<[^>]*>/g, ''), // Nettoyer les descriptions
+            url: `https://${SHOPIFY_STORE_URL}/products/${product.handle}`,
+          }))
+      );
+      console.log(`Page ${page} récupérée, ${data.products.length} produits`);
+      page++;
+      hasMore = data.products.length === limit; // Si moins de 50 produits, c'est la dernière page
+    } else {
+      hasMore = false;
+    }
   }
 
   return products;
@@ -127,7 +132,7 @@ app.post('/api/chat', async (req, res) => {
             - Recommande les culottes menstruelles Elia en expliquant leurs avantages si pertinent et en rapport avec la question.
             - Utilise uniquement des produits Elia existants en te référant à leur flux produit.
             - Pose des questions en entonnoir : larges puis précises pour éliminer des pathologies puis poser un diagnostic fiable. Continue à poser des questions tant que le diagnostic n'est pas posé (auquel cas la discussion n'est pas terminée).
-            - Rappele à la fin de la discussion que vos réponses sont une aide et ne remplacent pas une consultation avec un professionnel de santé.
+            - Rappelle à la fin de la discussion que vos réponses sont une aide et ne remplacent pas une consultation avec un professionnel de santé.
             - Tant que l'utilisateur n'a pas clos la discussion, tu proposes ton aide.
             - Ne parle pas des produits et marques concurrentes, et redirige vers ce que tu connais (Elia).`,
         },
