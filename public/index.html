@@ -115,92 +115,14 @@
 
     console.log("Identifiant utilisateur :", userId);
 
+    // Fonction pour afficher un message
     function displayMessage(message, sender, isHTML = false) {
       const messageDiv = document.createElement("div");
       messageDiv.classList.add("message", sender);
       if (isHTML) {
-        messageDiv.innerHTML = message;
+        messageDiv.innerHTML = message; // Insérer du HTML pour les réponses formatées
       } else {
-        messageDiv.textContent = message;
+        messageDiv.textContent = message; // Texte brut pour l'utilisateur
       }
       messageDiv.style.display = "block"; // Garantit une nouvelle ligne
-      messageDiv.style.minHeight = "20px"; // Réserve de l'espace pour l'affichage progressif
-      messagesContainer.appendChild(messageDiv);
-      messagesContainer.scrollTop = messagesContainer.scrollHeight;
-      return messageDiv;
-    }
-
-    async function showWaitingMessage() {
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          const waitingMessage = displayMessage(
-            "Votre sage-femme est en train de vous répondre...",
-            "bot"
-          );
-          resolve(waitingMessage);
-        }, 1000);
-      });
-    }
-
-    async function typeResponse(message, targetDiv) {
-      const typingDelay = 30;
-      let currentText = "";
-      for (let i = 0; i < message.length; i++) {
-        currentText += message[i];
-        targetDiv.innerHTML = currentText;
-        await new Promise((resolve) => setTimeout(resolve, typingDelay));
-      }
-    }
-
-    async function sendMessage() {
-      const userMessage = userInput.value.trim();
-      if (!userMessage) return;
-
-      displayMessage(userMessage, "user");
-      userInput.value = "";
-
-      const waitingMessage = await showWaitingMessage();
-
-      try {
-        const response = await fetch("/api/chat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userMessage, userId }),
-        });
-
-        const data = await response.json();
-        messagesContainer.removeChild(waitingMessage);
-
-        if (data && data.reply) {
-          const botMessageDiv = displayMessage("", "bot", true);
-          await typeResponse(data.reply, botMessageDiv);
-        } else {
-          displayMessage(
-            "Je n'ai pas pu obtenir de réponse. Réessayez plus tard.",
-            "bot"
-          );
-        }
-      } catch (error) {
-        messagesContainer.removeChild(waitingMessage);
-        displayMessage("Une erreur est survenue. Réessayez plus tard.", "bot");
-        console.error("Erreur côté frontend :", error);
-      }
-    }
-
-    window.onload = () => {
-      displayMessage(
-        "Bonjour ! Je suis votre sage-femme virtuelle. Je vais vous poser quelques questions pour comprendre votre problème. N'hésitez pas à me répondre en détail !",
-        "bot"
-      );
-    };
-
-    sendButton.addEventListener("click", sendMessage);
-    userInput.addEventListener("keypress", (e) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        sendMessage();
-      }
-    });
-  </script>
-</body>
-</html>
+      messageDiv.style.minHeight = "20px"; // Réserve de l'espace pour l'affichage
