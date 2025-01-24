@@ -72,59 +72,61 @@
       <button id="send-button">Envoyer</button>
     </div>
   </div>
-  <script>
-    const messagesContainer = document.getElementById("chat-messages");
-    const userInput = document.getElementById("user-input");
-    const sendButton = document.getElementById("send-button");
+<script>
+  const messagesContainer = document.getElementById("chat-messages");
+  const userInput = document.getElementById("user-input");
+  const sendButton = document.getElementById("send-button");
 
-    // Fonction pour afficher un message
-    function displayMessage(message, sender) {
-      const messageDiv = document.createElement("div");
-      messageDiv.classList.add("message", sender);
-      messageDiv.textContent = message;
-      messagesContainer.appendChild(messageDiv);
-      messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    }
+  // Fonction pour afficher un message
+  function displayMessage(message, sender) {
+    const messageDiv = document.createElement("div");
+    messageDiv.classList.add("message", sender);
+    messageDiv.textContent = message;
+    messagesContainer.appendChild(messageDiv);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+  }
 
-    // Envoyer une requête à l'API
-    async function sendMessage() {
-      const userMessage = userInput.value.trim();
-      if (!userMessage) return;
+  // Envoyer une requête à l'API
+  async function sendMessage() {
+    const userMessage = userInput.value.trim();
+    if (!userMessage) return;
 
-      // Affiche le message de l'utilisateur
-      displayMessage(userMessage, "user");
-      userInput.value = "";
+    // Affiche le message de l'utilisateur
+    displayMessage(userMessage, "user");
+    userInput.value = "";
 
-      try {
-        const response = await fetch("/api/chat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userMessage }),
-        });
+    try {
+      console.log("Envoi du message au backend :", userMessage);
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userMessage }),
+      });
 
-        const data = await response.json();
-        console.log("Réponse reçue du backend :", data); // Log de la réponse pour débogage
+      const data = await response.json();
+      console.log("Réponse reçue du backend :", data);
 
-        // Vérifie si 'choices' existe et contient des éléments
-        if (data && data.reply) {
-          displayMessage(data.reply, "bot");
-        } else {
-          displayMessage("Je n'ai pas pu obtenir une réponse de l'API. Réessayez plus tard.", "bot");
-          console.error("Réponse invalide du backend :", data);
-        }
-      } catch (error) {
-        console.error("Erreur côté frontend :", error);
-        displayMessage("Une erreur est survenue. Réessayez plus tard.", "bot");
+      // Vérification si 'choices' existe et contient des données
+      if (data && data.reply) {
+        displayMessage(data.reply, "bot");
+      } else {
+        displayMessage("Je n'ai pas pu obtenir de réponse. Réessayez plus tard.", "bot");
+        console.error("Réponse invalide du backend :", data);
       }
+    } catch (error) {
+      console.error("Erreur côté frontend :", error);
+      displayMessage("Une erreur est survenue. Réessayez plus tard.", "bot");
     }
+  }
 
-    // Événement bouton envoyer
-    sendButton.addEventListener("click", sendMessage);
+  // Événement bouton envoyer
+  sendButton.addEventListener("click", sendMessage);
 
-    // Événement touche "Entrée"
-    userInput.addEventListener("keypress", (e) => {
-      if (e.key === "Enter") sendMessage();
-    });
-  </script>
+  // Événement touche "Entrée"
+  userInput.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") sendMessage();
+  });
+</script>
+
 </body>
 </html>
