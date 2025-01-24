@@ -50,7 +50,8 @@
     }
     .message.waiting {
       font-style: italic;
-      color: #555;
+      color: #888; /* Couleur grise pour indiquer un message temporaire */
+      text-align: left;
     }
     #chat-input {
       display: flex;
@@ -135,13 +136,13 @@
       return waitingMessage;
     }
 
-    // Afficher une réponse progressivement (effet de typewriter)
-    async function typeResponse(message) {
+    // Effet de typewriter pour afficher progressivement une réponse
+    async function typeResponse(message, targetDiv) {
       const typingDelay = 30; // Délai entre chaque caractère (en ms)
       let currentText = "";
       for (let i = 0; i < message.length; i++) {
         currentText += message[i];
-        messagesContainer.lastChild.innerHTML = currentText;
+        targetDiv.innerHTML = currentText;
         await new Promise((resolve) => setTimeout(resolve, typingDelay));
       }
     }
@@ -173,7 +174,7 @@
           botMessageDiv.classList.add("message", "bot");
           botMessageDiv.innerHTML = ""; // Préparation à l'effet de typewriter
           messagesContainer.appendChild(botMessageDiv);
-          await typeResponse(data.reply); // Affichage progressif de la réponse
+          await typeResponse(data.reply, botMessageDiv); // Affichage progressif de la réponse
         } else {
           displayMessage(
             "Je n'ai pas pu obtenir de réponse. Réessayez plus tard.",
