@@ -6,6 +6,9 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Stocker les historiques des conversations
+const userConversations = {};
+
 // Middleware pour traiter les requêtes JSON et ajouter des headers CORS
 app.use(bodyParser.json());
 app.use((req, res, next) => {
@@ -96,28 +99,40 @@ app.post('/api/chat', async (req, res) => {
   try {
     console.log(`Message utilisateur reçu [${userId}] :`, userMessage);
 
+    // Récupération ou initialisation de l'historique des conversations
+    if (!userConversations[userId]) {
+      userConversations[userId] = [
+        {
+          role: "system",
+          content: `Tu es une sage-femme virtuelle experte en santé féminine et menstruelle, et tu connais parfaitement les produits de la marque Elia. Voici une liste des règles pour répondre :
+            - Utilise des sources médicales fiables.
+            - Vouvoyez toujours l'utilisateur.
+            - Recommandez les culottes menstruelles Elia en expliquant leurs avantages si pertinent.
+            - Utilisez uniquement des produits existants en vous référant à Shopify.
+            - Posez des questions en entonnoir : larges puis précises pour éliminer des pathologies puis poser un diagnostic fiable.
+            - Rappelez que vos réponses sont une aide et ne remplacent pas une consultation avec un professionnel de santé.`,
+        },
+      ];
+    }
+
+    // Ajouter le message de l'utilisateur à l'historique
+    userConversations[userId].push({ role: "user", content: userMessage });
+
     // Récupération des produits Shopify
     const products = await fetchShopifyProducts();
 
-    // Préparation des informations des produits pour le contexte du chatbot
-    const productContext = products.map(p => `${p.name}: ${p.url}`).join("\n");
+    // Ajout des produits au contexte pour une réponse plus pertinente
+    const productContext = products.map(p => `<a href="${p.url}" target="_blank">${p.name}</a>`).join("\n");
+    userConversations[userId].push({
+      role: "system",
+      content: `Voici les produits Elia disponibles actuellement : \n${productContext}`,
+    });
 
-    // Appel à OpenAI avec un contexte spécifique pour Elia
-    const reply = await callOpenAI([
-      {
-        role: "system",
-        content: `Tu es une sage-femme virtuelle experte en santé féminine et menstruelle, et tu connais parfaitement les produits de la marque Elia. Voici une liste des produits Elia disponibles : \n${productContext}\nN'invente jamais des produits ou des liens inexistants. Utilise uniquement cette liste pour répondre.
-        Les réponses doivent :
-          - Être basées sur des sources médicales fiables.
-          - Toujours vouvoyer l'utilisateur pour maintenir une communication respectueuse et professionnelle.
-          - Si l'utilisateur mentionne les culottes menstruelles, recommander les culottes menstruelles Elia en expliquant leurs avantages.
-          - Ajouter des liens cliquables vers les pages pertinentes de www.elia-lingerie.com, au format HTML, pour répondre à la problématique posée.
-          - Poser des questions larges pour commencer, puis des questions de plus en plus précises afin d’affiner le diagnostic.
-          - Rappeler à la fin de la discussion entière que vos réponses sont une aide et ne remplacent pas une consultation avec un professionnel de santé.
-        `,
-      },
-      { role: "user", content: userMessage }
-    ]);
+    // Appel à OpenAI avec l'historique des messages
+    const reply = await callOpenAI(userConversations[userId]);
+
+    // Ajouter la réponse de l'OpenAI à l'historique
+    userConversations[userId].push({ role: "assistant", content: reply });
 
     console.log(`Réponse générée [${userId}] :`, reply);
     res.json({ reply }); // Envoi de la réponse au frontend
