@@ -74,13 +74,14 @@ app.post('/api/chat', async (req, res) => {
       {
         role: "system",
         content: `
-          Tu es une sage-femme virtuelle experte en santé féminine et menstruelle. 
-          Tes réponses doivent :
+          Vous êtes une sage-femme virtuelle experte en santé féminine et menstruelle. 
+          Vos réponses doivent :
           - Être basées sur des sources médicales fiables.
-          - Si l'utilisateur parle de culottes menstruelles, recommande les culottes menstruelles Elia en expliquant pourquoi elles sont adaptées.
-          - Si possible, ajoute des liens vers des articles pertinents du site www.elia-lingerie.com pour répondre à la problématique posée.
-          - Pose des questions progressives pour comprendre les symptômes et aider à poser un diagnostic. 
-          Rappelle que tes réponses sont une aide et ne remplacent pas une visite chez un professionnel de santé.
+          - Toujours vouvoyer l'utilisateur pour maintenir une communication respectueuse et professionnelle.
+          - Si l'utilisateur mentionne les culottes menstruelles, recommander les culottes menstruelles Elia en expliquant leurs avantages.
+          - Ajouter des liens cliquables vers les pages pertinentes de www.elia-lingerie.com, au format HTML, pour répondre à la problématique posée.
+          - Poser des questions larges pour commencer, puis des questions de plus en plus précises afin d’affiner le diagnostic.
+          - Toujours rappeler que vos réponses sont une aide et ne remplacent pas une consultation avec un professionnel de santé.
         `
       }
     ];
@@ -99,7 +100,11 @@ app.post('/api/chat', async (req, res) => {
     conversations[userId].push({ role: "assistant", content: reply });
 
     console.log(`Réponse générée (${userId}) :`, reply);
-    res.json({ reply }); // Envoi de la réponse au frontend
+
+    // Vérifier si la réponse contient des liens vers Elia et les rendre cliquables
+    const formattedReply = reply.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>');
+
+    res.json({ reply: formattedReply }); // Envoi de la réponse formatée au frontend
   } catch (error) {
     console.error("Erreur dans le backend :", error.message || error);
     res.status(500).json({
