@@ -22,9 +22,11 @@
       border-radius: 8px;
       background-color: #fff; /* Blanc */
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      display: flex;
+      flex-direction: column;
     }
     #chat-messages {
-      height: 400px;
+      flex: 1;
       overflow-y: auto;
       padding: 16px;
       border-bottom: 2px solid #000; /* Noir */
@@ -36,10 +38,9 @@
       margin-bottom: 12px;
       padding: 8px;
       border-radius: 8px;
-      display: inline-block;
+      display: block; /* Forcer chaque message sur une nouvelle ligne */
       max-width: 80%;
       white-space: pre-wrap; /* Respecter les sauts de ligne */
-      clear: both; /* Assure que chaque message commence sur une nouvelle ligne */
     }
     .message.user {
       background-color: #000; /* Noir */
@@ -50,15 +51,10 @@
       background-color: #efe9de; /* Beige */
       color: #000; /* Noir */
       align-self: flex-start;
-      display: block; /* Toujours sur une nouvelle ligne */
-      min-height: 30px; /* Garantir un espace pour l'effet typewriter */
     }
     .message.waiting {
       font-style: italic;
       color: #888; /* Couleur grise pour indiquer un message temporaire */
-      text-align: left;
-      align-self: flex-start;
-      display: block; /* Toujours sur une nouvelle ligne */
     }
     #chat-input {
       display: flex;
@@ -111,7 +107,6 @@
     const userInput = document.getElementById("user-input");
     const sendButton = document.getElementById("send-button");
 
-    // Générer un identifiant unique pour chaque utilisateur
     let userId = localStorage.getItem("userId");
     if (!userId) {
       userId = crypto.randomUUID();
@@ -120,38 +115,35 @@
 
     console.log("Identifiant utilisateur :", userId);
 
-    // Fonction pour afficher un message
     function displayMessage(message, sender, isHTML = false) {
       const messageDiv = document.createElement("div");
       messageDiv.classList.add("message", sender);
       if (isHTML) {
-        messageDiv.innerHTML = message; // Insérer du HTML pour les réponses formatées
+        messageDiv.innerHTML = message;
       } else {
-        messageDiv.textContent = message; // Texte brut pour l'utilisateur
+        messageDiv.textContent = message;
       }
-      messageDiv.style.display = "block"; // Forcer chaque message à être sur une nouvelle ligne
-      messageDiv.style.minHeight = "30px"; // Assurer un espace visible même avec un message court
+      messageDiv.style.display = "block"; // Garantit une nouvelle ligne
+      messageDiv.style.minHeight = "20px"; // Réserve de l'espace pour l'affichage progressif
       messagesContainer.appendChild(messageDiv);
       messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      return messageDiv;
     }
 
-    // Afficher un message d'attente temporaire après un délai de 1 seconde
     async function showWaitingMessage() {
       return new Promise((resolve) => {
         setTimeout(() => {
-          const waitingMessage = document.createElement("div");
-          waitingMessage.classList.add("message", "bot", "waiting");
-          waitingMessage.textContent = "Votre sage-femme est en train de vous répondre...";
-          messagesContainer.appendChild(waitingMessage);
-          messagesContainer.scrollTop = messagesContainer.scrollHeight;
+          const waitingMessage = displayMessage(
+            "Votre sage-femme est en train de vous répondre...",
+            "bot"
+          );
           resolve(waitingMessage);
         }, 1000);
       });
     }
 
-    // Effet de typewriter pour afficher progressivement une réponse
     async function typeResponse(message, targetDiv) {
-      const typingDelay = 30; // Délai entre chaque caractère (en ms)
+      const typingDelay = 30;
       let currentText = "";
       for (let i = 0; i < message.length; i++) {
         currentText += message[i];
@@ -160,16 +152,13 @@
       }
     }
 
-    // Envoyer une requête au backend
     async function sendMessage() {
       const userMessage = userInput.value.trim();
       if (!userMessage) return;
 
-      // Affiche le message de l'utilisateur
       displayMessage(userMessage, "user");
       userInput.value = "";
 
-      // Affiche le message d'attente après 1 seconde
       const waitingMessage = await showWaitingMessage();
 
       try {
@@ -180,29 +169,24 @@
         });
 
         const data = await response.json();
-        messagesContainer.removeChild(waitingMessage); // Retire le message d'attente
+        messagesContainer.removeChild(waitingMessage);
 
         if (data && data.reply) {
-          const botMessageDiv = document.createElement("div");
-          botMessageDiv.classList.add("message", "bot");
-          botMessageDiv.innerHTML = ""; // Préparation à l'effet de typewriter
-          messagesContainer.appendChild(botMessageDiv);
-          await typeResponse(data.reply, botMessageDiv); // Affichage progressif de la réponse
+          const botMessageDiv = displayMessage("", "bot", true);
+          await typeResponse(data.reply, botMessageDiv);
         } else {
           displayMessage(
             "Je n'ai pas pu obtenir de réponse. Réessayez plus tard.",
             "bot"
           );
-          console.error("Réponse invalide du backend :", data);
         }
       } catch (error) {
-        messagesContainer.removeChild(waitingMessage); // Retire le message d'attente en cas d'erreur
-        console.error("Erreur côté frontend :", error);
+        messagesContainer.removeChild(waitingMessage);
         displayMessage("Une erreur est survenue. Réessayez plus tard.", "bot");
+        console.error("Erreur côté frontend :", error);
       }
     }
 
-    // Ajouter un message de bienvenue automatique
     window.onload = () => {
       displayMessage(
         "Bonjour ! Je suis votre sage-femme virtuelle. Je vais vous poser quelques questions pour comprendre votre problème. N'hésitez pas à me répondre en détail !",
@@ -210,13 +194,10 @@
       );
     };
 
-    // Événement bouton envoyer
     sendButton.addEventListener("click", sendMessage);
-
-    // Événement touche "Entrée"
     userInput.addEventListener("keypress", (e) => {
       if (e.key === "Enter") {
-        e.preventDefault(); // Empêche le saut de ligne dans le textarea
+        e.preventDefault();
         sendMessage();
       }
     });
