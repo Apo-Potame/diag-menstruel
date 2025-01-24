@@ -34,9 +34,17 @@ async function callOpenAI(messages, maxTokens = 500) {
   });
 
   const data = await response.json();
+
+  // Vérification des erreurs dans la réponse
   if (!response.ok || data.error) {
     throw new Error(data.error?.message || "Erreur avec l'API OpenAI.");
   }
+
+  // Vérifie si 'choices' contient des données valides
+  if (!data.choices || data.choices.length === 0) {
+    throw new Error("Aucune réponse générée par l'API OpenAI.");
+  }
+
   return data.choices[0].message.content;
 }
 
@@ -50,6 +58,7 @@ app.get('/', (req, res) => {
 app.post('/api/chat', async (req, res) => {
   const userMessage = req.body.userMessage;
 
+  // Vérifie que le message utilisateur est fourni
   if (!userMessage) {
     console.error("Erreur : Le message utilisateur est vide.");
     return res.status(400).json({ error: "Le message utilisateur est vide." });
@@ -58,47 +67,17 @@ app.post('/api/chat', async (req, res) => {
   try {
     console.log("Message utilisateur reçu :", userMessage);
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+    // Appel à l'API OpenAI avec un prompt pour le chatbot
+    const reply = await callOpenAI([
+      {
+        role: "system",
+        content: "Tu es une sage-femme virtuelle experte en santé féminine et menstruelle. Réponds de manière claire et rassurante, mais précise que tes réponses sont une aide au diagnostic et ne remplacent pas une visite médicale chez un professionnel de santé."
       },
-      body: JSON.stringify({
-        model: "gpt-3.5-turbo",
-        messages: [
-          {
-            role: "system",
-            content: "Tu es une sage-femme virtuelle experte en santé féminine et menstruelle. Réponds de manière claire et rassurante, mais tes réponses sont juste une aide au diagnostic et ne remplace pas une visite médicale chez un pro de santé."
-          },
-          { role: "user", content: userMessage }
-        ],
-        max_tokens: 500
-      }),
-    });
+      { role: "user", content: userMessage }
+    ]);
 
-    const data = await response.json();
-    console.log("Réponse brute de l'API OpenAI :", data);
-
-    // Vérification si la réponse est valide
-    if (!response.ok || data.error) {
-      console.error("Erreur API OpenAI :", data.error || data);
-      return res.status(500).json({
-        error: "Erreur avec l'API OpenAI.",
-        details: data.error || "Réponse invalide de l'API."
-      });
-    }
-
-    // Vérification de 'choices'
-    if (!data.choices || data.choices.length === 0) {
-      console.error("Erreur : Aucune réponse valide dans 'choices'.");
-      return res.status(500).json({ error: "Aucune réponse générée par l'API OpenAI." });
-    }
-
-    // Récupération et envoi de la réponse
-    const reply = data.choices[0].message.content;
     console.log("Réponse générée :", reply);
-    res.json({ reply });
+    res.json({ reply }); // Envoi de la réponse au frontend
   } catch (error) {
     console.error("Erreur dans le backend :", error.message || error);
     res.status(500).json({
@@ -108,41 +87,20 @@ app.post('/api/chat', async (req, res) => {
   }
 });
 
-
-// Route de test
+// Route de test pour vérifier l'API OpenAI
 app.get('/test-openai', async (req, res) => {
   try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: "gpt-3.5-turbo",
-        messages: [{ role: "user", content: "Test de l'API OpenAI" }],
-        max_tokens: 50,
-      }),
-    });
-
-    const data = await response.json();
-    console.log("Réponse brute de l'API OpenAI (test) :", data);
-
-    if (!response.ok || data.error) {
-      console.error("Erreur API OpenAI (test) :", data.error || data);
-      return res.status(500).json({
-        error: "Erreur avec l'API OpenAI (test).",
-        details: data.error || "Réponse invalide de l'API."
-      });
-    }
-
-    res.json({ reply: data.choices[0].message.content });
+    // Appel simple à l'API OpenAI pour tester la connectivité
+    const reply = await callOpenAI([{ role: "user", content: "Test de l'API OpenAI" }], 50);
+    res.json({ reply });
   } catch (error) {
     console.error("Erreur lors du test :", error.message || error);
-    res.status(500).json({ error: "Erreur lors du test de l'API.", details: error.message });
+    res.status(500).json({
+      error: "Erreur lors du test de l'API.",
+      details: error.message || "Une erreur inattendue est survenue."
+    });
   }
 });
-
 
 // Lancement du serveur
 app.listen(PORT, () => {
