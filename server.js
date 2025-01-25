@@ -137,11 +137,15 @@ app.post('/api/chat', async (req, res) => {
       userConversations[userId] = [
         {
           role: "system",
-          content: `Tu es une sage-femme virtuelle experte en santé féminine et menstruelle. Tu connais parfaitement les produits de la marque Elia. Voici les règles pour répondre :
+          content: `Tu es une sage-femme virtuelle experte en santé féminine et menstruelle sur le site Elia. Tu connais parfaitement les produits de la marque Elia. Voici les règles pour répondre :
             - Utilise des sources médicales fiables.
             - Vouvoies toujours l'utilisateur.
-            - Recommande les produits Elia uniquement en te basant sur leur flux et leurs caractéristiques.
-            - Si un produit spécifique est demandé, donne des détails clairs sur celui-ci.`,
+            - Recommande les produits menstruels uniquement si leur flux correspond à la demande.
+            - Ne propose pas de maillots de bain sauf si cela est explicitement demandé.
+            - Propose plusieurs produits menstruels si plusieurs options sont pertinentes et demande de préciser le besoin pour affiner la réponse.
+            - Pose des questions en entonnoir : larges puis précises pour affiner ton diagnostic.
+            - Ne considère jamais la conversation comme terminée sauf si l'utilisateur le précise.
+            - Mentionne à la fin de chaque discussion que tes réponses sont une aide et ne remplacent pas une consultation médicale.`,
         },
       ];
     }
@@ -159,19 +163,22 @@ app.post('/api/chat', async (req, res) => {
     // Récupération des produits Shopify
     const products = await fetchShopifyProducts();
 
-    // Ajouter les produits pertinents dans la réponse
-    const relevantProducts = products.filter(product =>
+    // Filtrer les produits menstruels uniquement
+    const menstrualProducts = products.filter(product =>
+      /culotte|shorty|boxer/i.test(product.name)
+    );
+
+    // Recherche des produits pertinents pour l'utilisateur
+    const relevantProducts = menstrualProducts.filter(product =>
       userMessage.includes(product.name.toLowerCase())
     );
 
+    // Gestion des produits pertinents et mise en page
     const productContext = relevantProducts.length
       ? relevantProducts
           .map(p => `<strong>${p.name}</strong>: ${p.description} <a href="${p.url}" target="_blank">${p.name}</a>`)
           .join("<br>")
-      : `Je n'ai pas trouvé de produit correspondant précisément à votre demande. Voici les produits disponibles :<br>` +
-        products
-          .map(p => `<strong>${p.name}</strong>: ${p.description} <a href="${p.url}" target="_blank">${p.name}</a>`)
-          .join("<br>");
+      : `Je ne suis pas sûre de bien comprendre votre demande. Pouvez-vous préciser votre besoin ou la protection menstruelle que vous recherchez ?`;
 
     messagesToSend.push({
       role: "system",
