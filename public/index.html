@@ -7,35 +7,35 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      background-color: #efe9de; /* Beige */
+      background-color: #efe9de;
       margin: 0;
       padding: 0;
       display: flex;
       justify-content: center;
       align-items: center;
       height: 100vh;
-      overflow: hidden; /* Empêche le défilement de la page */
+      overflow: hidden;
     }
 
     #chat-container {
       width: 400px;
       max-width: 90%;
-      height: 600px; /* Hauteur fixe par défaut */
-      border: 2px solid #000; /* Noir */
+      height: 600px;
+      border: 2px solid #000;
       border-radius: 8px;
-      background-color: #fff; /* Blanc */
+      background-color: #fff;
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
       display: flex;
       flex-direction: column;
-      overflow: hidden; /* Empêche tout débordement */
+      overflow: hidden;
     }
 
     #chat-messages {
-      flex: 1; /* Remplit tout l'espace disponible */
-      overflow-y: auto; /* Active le défilement vertical */
+      flex: 1;
+      overflow-y: auto;
       padding: 16px;
-      border-bottom: 2px solid #000; /* Noir */
-      background-color: #fff; /* Blanc */
+      border-bottom: 2px solid #000;
+      background-color: #fff;
       display: flex;
       flex-direction: column;
     }
@@ -44,59 +44,59 @@
       margin-bottom: 12px;
       padding: 8px;
       border-radius: 8px;
-      display: block; /* Toujours sur une nouvelle ligne */
+      display: block;
       max-width: 80%;
-      white-space: pre-wrap; /* Respecte les sauts de ligne */
+      white-space: pre-wrap;
     }
 
     .message.user {
-      background-color: #000; /* Noir */
-      color: #fff; /* Blanc */
+      background-color: #000;
+      color: #fff;
       align-self: flex-end;
     }
 
     .message.bot {
-      background-color: #efe9de; /* Beige */
-      color: #000; /* Noir */
+      background-color: #efe9de;
+      color: #000;
       align-self: flex-start;
     }
 
     .message.waiting {
       font-style: italic;
-      color: #888; /* Gris clair pour le message temporaire */
+      color: #888;
     }
 
     #chat-input {
       display: flex;
       padding: 8px;
-      background-color: #fff; /* Blanc */
+      background-color: #fff;
     }
 
     #user-input {
       flex: 1;
       padding: 8px;
-      border: 2px solid #000; /* Noir */
+      border: 2px solid #000;
       border-radius: 4px;
-      resize: none; /* Désactive le redimensionnement */
-      overflow-y: auto; /* Permet un défilement vertical si nécessaire */
-      line-height: 1.5; /* Ajuste l'espacement des lignes */
-      font-family: Arial, sans-serif; /* Style cohérent */
-      font-size: 14px; /* Taille de la police */
-      height: 60px; /* Hauteur initiale */
-      min-height: 60px; /* Hauteur minimale */
-      max-height: 100px; /* Hauteur maximale */
+      resize: none;
+      overflow-y: auto;
+      line-height: 1.5;
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+      height: 60px;
+      min-height: 60px;
+      max-height: 100px;
     }
 
     #user-input::placeholder {
-      white-space: pre-wrap; /* Permet au texte de passer à la ligne */
-      color: #aaa; /* Couleur du placeholder */
-      font-style: italic; /* Style du placeholder */
+      white-space: pre-wrap;
+      color: #aaa;
+      font-style: italic;
     }
 
     #send-button {
       padding: 8px 16px;
       margin-left: 8px;
-      background-color: #000; /* Noir */
+      background-color: #000;
       color: white;
       border: none;
       border-radius: 4px;
@@ -104,24 +104,23 @@
     }
 
     #send-button:hover {
-      background-color: #444; /* Gris foncé */
+      background-color: #444;
     }
 
     #send-button:disabled {
-      background-color: #ccc; /* Gris clair */
+      background-color: #ccc;
       cursor: not-allowed;
     }
 
-    /* Media queries pour ajuster la hauteur sur différents écrans */
-    @media (max-width: 768px) { /* Tablettes */
+    @media (max-width: 768px) {
       #chat-container {
-        height: 500px; /* Hauteur réduite pour tablettes */
+        height: 500px;
       }
     }
 
-    @media (max-width: 480px) { /* Petits téléphones */
+    @media (max-width: 480px) {
       #chat-container {
-        height: 400px; /* Hauteur réduite pour petits téléphones */
+        height: 400px;
       }
     }
   </style>
@@ -139,6 +138,8 @@
     const userInput = document.getElementById("user-input");
     const sendButton = document.getElementById("send-button");
 
+    let isTyping = false; // Variable pour bloquer l'envoi pendant l'effet typewriter
+
     // Générer un identifiant unique pour chaque utilisateur
     let userId = localStorage.getItem("userId");
     if (!userId) {
@@ -148,16 +149,19 @@
 
     console.log("Identifiant utilisateur :", userId);
 
-    let isTyping = false; // Variable pour bloquer l'envoi pendant l'effet typewriter
+    // Activer le bouton Envoyer lorsque la zone de texte est remplie
+    userInput.addEventListener("input", () => {
+      sendButton.disabled = isTyping || userInput.value.trim() === "";
+    });
 
     // Fonction pour afficher un message
     function displayMessage(message, sender, isHTML = false) {
       const messageDiv = document.createElement("div");
       messageDiv.classList.add("message", sender);
       if (isHTML) {
-        messageDiv.innerHTML = message; // Insérer du HTML pour les réponses formatées
+        messageDiv.innerHTML = message;
       } else {
-        messageDiv.textContent = message; // Texte brut pour l'utilisateur
+        messageDiv.textContent = message;
       }
       messagesContainer.appendChild(messageDiv);
       messagesContainer.scrollTop = messagesContainer.scrollHeight;
@@ -173,13 +177,13 @@
             "bot"
           );
           resolve(waitingMessage);
-        }, 1000); // 1 seconde avant d'afficher le message d'attente
+        }, 1000);
       });
     }
 
     // Fonction pour afficher une réponse progressivement (effet de typewriter)
     async function typeResponse(message, targetDiv) {
-      const typingDelay = 30; // Temps entre chaque caractère (en ms)
+      const typingDelay = 30;
       let currentText = "";
       isTyping = true;
       sendButton.disabled = true; // Désactiver le bouton Envoyer
@@ -194,12 +198,12 @@
 
     // Envoyer une requête au backend
     async function sendMessage() {
-      if (isTyping) return; // Bloquer l'envoi si l'effet typewriter est actif
+      if (isTyping) return;
 
       const userMessage = userInput.value.trim();
       if (!userMessage) return;
 
-      sendButton.disabled = true; // Désactiver le bouton immédiatement
+      sendButton.disabled = true;
 
       // Affiche le message de l'utilisateur
       displayMessage(userMessage, "user");
@@ -216,15 +220,15 @@
         });
 
         const data = await response.json();
-        messagesContainer.removeChild(waitingMessage); // Supprime le message d'attente
+        messagesContainer.removeChild(waitingMessage);
 
         if (data && data.reply) {
           const botMessageDiv = document.createElement("div");
           botMessageDiv.classList.add("message", "bot");
-          botMessageDiv.innerHTML = "&nbsp;"; // Place un conteneur vide mais toujours visible
+          botMessageDiv.innerHTML = "&nbsp;";
           messagesContainer.appendChild(botMessageDiv);
 
-          await typeResponse(data.reply, botMessageDiv); // Effet typewriter
+          await typeResponse(data.reply, botMessageDiv);
         } else {
           displayMessage(
             "Je n'ai pas pu obtenir de réponse. Réessayez plus tard.",
@@ -232,12 +236,9 @@
           );
         }
       } catch (error) {
-        messagesContainer.removeChild(waitingMessage); // Supprime le message d'attente en cas d'erreur
-        displayMessage("J'ai une urgence au cabinet. Vous pouvez revenir plus tard ?", "bot");
+        messagesContainer.removeChild(waitingMessage);
+        displayMessage("Une erreur est survenue. Réessayez plus tard.", "bot");
         console.error("Erreur côté frontend :", error);
-      } finally {
-        isTyping = false;
-        sendButton.disabled = false; // Réactiver le bouton après réponse
       }
     }
 
@@ -247,10 +248,9 @@
         "Bonjour ! Je suis votre sage-femme virtuelle. Je vais vous poser quelques questions pour comprendre votre problème. N'hésitez pas à me répondre en détail !",
         "bot"
       );
-      sendButton.disabled = false; // Activer le bouton Envoyer au chargement
+      sendButton.disabled = false;
     };
 
-    // Gestion des événements
     sendButton.addEventListener("click", sendMessage);
     userInput.addEventListener("keypress", (e) => {
       if (e.key === "Enter" && !isTyping) {
