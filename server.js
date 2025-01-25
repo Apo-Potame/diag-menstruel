@@ -113,28 +113,6 @@ async function fetchShopifyProducts() {
   return products;
 }
 
-// Fonction pour formater les produits avec des ancres cliquables
-function formatProductAsLink(product) {
-  return `<strong>${product.name}</strong>: ${product.description} <a href="${product.url}" target="_blank">voir le produit ici</a>`;
-}
-
-// Mettre en gras tous les mots importants dynamiquement dans la réponse
-function highlightImportantWords(reply, userMessage) {
-  // Supprimer la ponctuation des mots du message utilisateur
-  const cleanedUserMessage = userMessage.replace(/[.,!?]/g, '');
-  const wordsToHighlight = cleanedUserMessage.split(' ').filter(word => word.length > 3); // Filtrer les mots clés (longueur > 3)
-  const uniqueWords = [...new Set(wordsToHighlight)]; // Éviter les doublons
-
-  // Mettre en gras les mots clés dans la réponse
-  let highlightedReply = reply;
-  uniqueWords.forEach(word => {
-    const regex = new RegExp(`\\b${word}\\b`, 'gi');
-    highlightedReply = highlightedReply.replace(regex, `<strong>${word}</strong>`);
-  });
-
-  return highlightedReply;
-}
-
 // Servir l'interface HTML
 const path = require('path');
 app.get('/', (req, res) => {
@@ -164,7 +142,7 @@ app.post('/api/chat', async (req, res) => {
             - Vouvoies toujours l'utilisateur.
             - sauf question précise de l'utilisateur, essaye de diagnostiquer son affection gynécologique ou du cycle menstruel.
             - Pose des questions en entonnoir : larges puis précises pour affiner ton diagnostic.
-            - les produits recommandés sont uniquement les produits Elia qui font partie de la liste.
+            - les produits recommandés sont uniquement les produits Elia existants qui font partie de la liste.
             - Recommande les produits Elia si cela est opportun dans la discussion.
             - Ne propose pas de maillots de bain sauf si cela est explicitement demandé.
             - Propose plusieurs produits menstruels si plusieurs options sont pertinentes et demande de préciser le besoin pour affiner la réponse.
@@ -172,8 +150,7 @@ app.post('/api/chat', async (req, res) => {
             - Mentionne à la fin de chaque discussion que tes réponses sont une aide et ne remplacent pas une consultation médicale.
             - ne mentionne pas de marques concurrentes
             - Elia est une marque française écoresponsable de culottes menstruelles en coton bio, certifiées Oeko-Tex
-            - Tu peux trouver plus d'informations sur le site www.elia-lingerie.com
-`,
+            - Tu peux trouver plus d'informations sur le site www.elia-lingerie.com`,
         },
       ];
     }
@@ -186,6 +163,7 @@ app.post('/api/chat', async (req, res) => {
     const messagesToSend = [
       userConversations[userId][0], // Inclure le message système
       ...limitedHistory,
+      { role: "system", content: `Date du jour : ${new Date().toLocaleDateString('fr-FR')}` }, // Ajouter la date actuelle
     ];
 
     // Récupération des produits Shopify
@@ -199,9 +177,11 @@ app.post('/api/chat', async (req, res) => {
     // Gestion des produits pertinents
     let productContext;
     if (relevantProducts.length > 0) {
-      productContext = relevantProducts.map(formatProductAsLink).join("<br>");
+      productContext = relevantProducts
+        .map(p => `<strong>${p.name}</strong>: ${p.description} <a href="${p.url}" target="_blank">voir le produit</a>`)
+        .join("<br>");
     } else {
-      productContext = `Je ne suis pas sûre de bien comprendre votre demande. Pouvez-vous préciser votre besoin ou le produit Elia que vous recherchez ?`;
+      productContext = `Je n'ai pas trouvé de produit correspondant exactement à votre demande. Pouvez-vous préciser votre besoin ou votre préférence ?`;
     }
 
     messagesToSend.push({
@@ -212,14 +192,11 @@ app.post('/api/chat', async (req, res) => {
     // Appel à OpenAI avec l'historique des messages
     const reply = await callOpenAI(messagesToSend);
 
-    // Mettre en gras les mots importants dynamiquement
-    const formattedReply = highlightImportantWords(reply, userMessage);
-
     // Ajouter la réponse de l'OpenAI à l'historique
-    userConversations[userId].push({ role: "assistant", content: formattedReply });
+    userConversations[userId].push({ role: "assistant", content: reply });
 
-    console.log(`Réponse générée [${userId}] :`, formattedReply);
-    res.json({ reply: formattedReply }); // Envoi de la réponse au frontend
+    console.log(`Réponse générée [${userId}] :`, reply);
+    res.json({ reply }); // Envoi de la réponse au frontend
   } catch (error) {
     console.error("Erreur dans le backend :", error.message || error);
     res.status(500).json({
