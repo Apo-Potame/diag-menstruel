@@ -148,7 +148,9 @@ app.post('/api/chat', async (req, res) => {
             - Propose plusieurs produits menstruels si plusieurs options sont pertinentes et demande de préciser le besoin pour affiner la réponse.
             - Ne considère jamais la conversation comme terminée sauf si l'utilisateur le précise.
             - Mentionne à la fin de chaque discussion que tes réponses sont une aide et ne remplacent pas une consultation médicale.
-            - ne mentionne pas de marques concurrentes`,
+            - ne mentionne pas de marques concurrentes
+            - Elia est une marque française écoresponsable de culottes menstruelles en coton bio, certifiées Oeko-Tex
+            - Tu peux trouver plus d'informations sur le site www.elia-lingerie.com`,
         },
       ];
     }
