@@ -159,16 +159,18 @@ app.post('/api/chat', async (req, res) => {
     // Récupération des produits Shopify
     const products = await fetchShopifyProducts();
 
-    // Filtrer pour répondre précisément
-    const relevantProduct = products.find(product =>
+    // Ajouter les produits pertinents dans la réponse
+    const relevantProducts = products.filter(product =>
       userMessage.includes(product.name.toLowerCase())
     );
 
-    const productContext = relevantProduct
-      ? `<strong>${relevantProduct.name}</strong>: ${relevantProduct.description} <a href="${relevantProduct.url}" target="_blank">Voir le produit</a>`
+    const productContext = relevantProducts.length
+      ? relevantProducts
+          .map(p => `<strong>${p.name}</strong>: ${p.description} <a href="${p.url}" target="_blank">${p.name}</a>`)
+          .join("<br>")
       : `Je n'ai pas trouvé de produit correspondant précisément à votre demande. Voici les produits disponibles :<br>` +
         products
-          .map(p => `<strong>${p.name}</strong>: ${p.description} <a href="${p.url}" target="_blank">Voir le produit</a>`)
+          .map(p => `<strong>${p.name}</strong>: ${p.description} <a href="${p.url}" target="_blank">${p.name}</a>`)
           .join("<br>");
 
     messagesToSend.push({
