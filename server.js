@@ -82,11 +82,22 @@ async function fetchShopifyProducts() {
       products = products.concat(
         data.products
           .filter(product => product.published_at) // Filtrer uniquement les produits actifs
-          .map(product => ({
-            name: product.title,
-            description: product.body_html.replace(/<[^>]*>/g, '').slice(0, 300), // Limiter les descriptions à 300 caractères
-            url: `https://${SHOPIFY_STORE_URL}/products/${product.handle}`,
-          }))
+          .map(product => {
+            const fullDescription = product.body_html.replace(/<[^>]*>/g, ''); // Nettoyer les descriptions HTML
+            const description = fullDescription.slice(0, 300); // Résumer à 300 caractères
+
+            // Extraire des informations spécifiques
+            const fluxMatch = fullDescription.match(/flux\s+(léger|moyen|abondant|hémorragique)/i);
+            const flux = fluxMatch ? fluxMatch[0] : "Non spécifié";
+
+            return {
+              name: product.title,
+              description: description,
+              flux: flux,
+              url: `https://${SHOPIFY_STORE_URL}/products/${product.handle}`,
+              appearance: fullDescription.includes("dentelle") ? "Avec dentelle" : "Classique",
+            };
+          })
       );
     }
 
@@ -153,7 +164,7 @@ app.post('/api/chat', async (req, res) => {
 
     // Ajout des produits au contexte pour une réponse plus pertinente
     const productContext = products
-      .map(p => `<strong>${p.name}</strong>: ${p.description} <a href="${p.url}" target="_blank">Voir le produit</a>`)
+      .map(p => `<strong>${p.name}</strong>: ${p.description} (${p.flux}, ${p.appearance}) <a href="${p.url}" target="_blank">Voir le produit</a>`)
       .join("<br>");
     messagesToSend.push({
       role: "system",
