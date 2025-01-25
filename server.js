@@ -163,6 +163,7 @@ app.post('/api/chat', async (req, res) => {
             - Pose des questions en entonnoir : larges puis précises pour affiner ton diagnostic.
             - les produits recommandés sont uniquement les produits Elia qui font partie de la liste.
             - Recommande les produits Elia si cela est opportun dans la discussion.
+            - Les culottes menstruelles ne soulagent pas les douleurs mais améliorent le confort pendant cette période.
             - Ne propose pas de maillots de bain sauf si cela est explicitement demandé.
             - Propose plusieurs produits menstruels si plusieurs options sont pertinentes et demande de préciser le besoin pour affiner la réponse.
             - Ne considère jamais la conversation comme terminée sauf si l'utilisateur le précise.
