@@ -129,7 +129,7 @@
   <div id="chat-container">
     <div id="chat-messages"></div>
     <div id="chat-input">
-      <textarea id="user-input" placeholder="Une question de santé féminine ? Expliquez-moi votre problème ici, et je ferai de mon mieux pour vous aider."></textarea>
+      <textarea id="user-input" placeholder="Une question de santé féminine ? Expliquez-moi votre problème ici."></textarea>
       <button id="send-button" disabled>Envoyer</button>
     </div>
   </div>
@@ -138,7 +138,8 @@
     const userInput = document.getElementById("user-input");
     const sendButton = document.getElementById("send-button");
 
-    let isTyping = false; // Variable pour bloquer l'envoi pendant l'effet typewriter
+    let isTyping = false; // Gestion de l'état d'écriture
+    let isBotTurn = true; // Le bot commence par défaut
 
     // Générer un identifiant unique pour chaque utilisateur
     let userId = localStorage.getItem("userId");
@@ -149,10 +150,12 @@
 
     console.log("Identifiant utilisateur :", userId);
 
-    // Activer le bouton Envoyer lorsque la zone de texte est remplie
-    userInput.addEventListener("input", () => {
-      sendButton.disabled = isTyping || userInput.value.trim() === "";
-    });
+    // Activer ou désactiver le bouton Envoyer en fonction de l'état
+    function updateSendButtonState() {
+      sendButton.disabled = isBotTurn || isTyping || userInput.value.trim() === "";
+    }
+
+    userInput.addEventListener("input", updateSendButtonState);
 
     // Fonction pour afficher un message
     function displayMessage(message, sender, isHTML = false) {
@@ -186,24 +189,37 @@
       const typingDelay = 30;
       let currentText = "";
       isTyping = true;
-      sendButton.disabled = true; // Désactiver le bouton Envoyer
+      updateSendButtonState(); // Met à jour l'état du bouton
       for (let i = 0; i < message.length; i++) {
         currentText += message[i];
         targetDiv.innerHTML = currentText;
         await new Promise((resolve) => setTimeout(resolve, typingDelay));
       }
       isTyping = false;
-      sendButton.disabled = false; // Réactiver le bouton Envoyer
+      isBotTurn = false; // Fin du tour du bot
+      updateSendButtonState(); // Réactiver le bouton Envoyer
+    }
+
+    // Désactiver l'entrée utilisateur
+    function disableUserInput() {
+      isBotTurn = true;
+      updateSendButtonState();
+    }
+
+    // Activer l'entrée utilisateur
+    function enableUserInput() {
+      isBotTurn = false;
+      updateSendButtonState();
     }
 
     // Envoyer une requête au backend
     async function sendMessage() {
-      if (isTyping) return;
+      if (isBotTurn || isTyping) return; // Bloquer si ce n'est pas au tour de l'utilisateur
 
       const userMessage = userInput.value.trim();
       if (!userMessage) return;
 
-      sendButton.disabled = true;
+      disableUserInput(); // Désactiver l'entrée utilisateur
 
       // Affiche le message de l'utilisateur
       displayMessage(userMessage, "user");
@@ -234,11 +250,13 @@
             "Je n'ai pas pu obtenir de réponse. Réessayez plus tard.",
             "bot"
           );
+          enableUserInput();
         }
       } catch (error) {
         messagesContainer.removeChild(waitingMessage);
         displayMessage("Une erreur est survenue. Réessayez plus tard.", "bot");
         console.error("Erreur côté frontend :", error);
+        enableUserInput();
       }
     }
 
@@ -248,12 +266,12 @@
         "Bonjour ! Je suis votre sage-femme virtuelle. Je vais vous poser quelques questions pour comprendre votre problème. N'hésitez pas à me répondre en détail !",
         "bot"
       );
-      sendButton.disabled = false;
+      enableUserInput();
     };
 
     sendButton.addEventListener("click", sendMessage);
     userInput.addEventListener("keypress", (e) => {
-      if (e.key === "Enter" && !isTyping) {
+      if (e.key === "Enter") {
         e.preventDefault();
         sendMessage();
       }
