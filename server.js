@@ -113,6 +113,25 @@ async function fetchShopifyProducts() {
   return products;
 }
 
+// Fonction pour formater les produits avec des ancres cliquables
+function formatProductAsLink(product) {
+  return `<strong>${product.name}</strong>: ${product.description} <a href="${product.url}" target="_blank">voir le produit ici</a>`;
+}
+
+// Mettre en gras les mots clés dynamiquement en fonction du message utilisateur
+function highlightImportantWords(reply, userMessage) {
+  const wordsToHighlight = userMessage.split(' ').filter(word => word.length > 3); // Filtrer les mots clés (longueur > 3)
+  const uniqueWords = [...new Set(wordsToHighlight)]; // Éviter les doublons
+
+  let highlightedReply = reply;
+  uniqueWords.forEach(word => {
+    const regex = new RegExp(`\\b${word}\\b`, 'gi');
+    highlightedReply = highlightedReply.replace(regex, `<strong>${word}</strong>`);
+  });
+
+  return highlightedReply;
+}
+
 // Servir l'interface HTML
 const path = require('path');
 app.get('/', (req, res) => {
@@ -140,7 +159,7 @@ app.post('/api/chat', async (req, res) => {
           content: `Tu es une sage-femme virtuelle experte en santé féminine et menstruelle sur le site Elia. Tu connais parfaitement les produits de la marque Elia. Voici les règles pour répondre :
             - Utilise des sources médicales fiables.
             - Vouvoies toujours l'utilisateur.
-            - sauf question précise de l'utilisateur, essaye de diagnostiquer son affection gynécologique ou du cycle menstruel. 
+            - sauf question précise de l'utilisateur, essaye de diagnostiquer son affection gynécologique ou du cycle menstruel.
             - Pose des questions en entonnoir : larges puis précises pour affiner ton diagnostic.
             - les produits recommandés sont uniquement les produits Elia qui font partie de la liste.
             - Recommande les produits Elia si cela est opportun dans la discussion.
@@ -168,22 +187,18 @@ app.post('/api/chat', async (req, res) => {
     // Récupération des produits Shopify
     const products = await fetchShopifyProducts();
 
-    // Filtrer les produits menstruels uniquement
-    const menstrualProducts = products.filter(product =>
-      /culotte|shorty|boxer/i.test(product.name)
-    );
-
     // Recherche des produits pertinents pour l'utilisateur
-    const relevantProducts = menstrualProducts.filter(product =>
+    const relevantProducts = products.filter(product =>
       userMessage.includes(product.name.toLowerCase())
     );
 
-    // Gestion des produits pertinents et mise en page
-    const productContext = relevantProducts.length
-      ? relevantProducts
-          .map(p => `<strong>${p.name}</strong>: ${p.description} <a href="${p.url}" target="_blank">${p.name}</a>`)
-          .join("<br>")
-      : `Je ne suis pas sûre de bien comprendre votre demande. Pouvez-vous préciser votre besoin ou la protection menstruelle que vous recherchez ?`;
+    // Gestion des produits pertinents
+    let productContext;
+    if (relevantProducts.length > 0) {
+      productContext = relevantProducts.map(formatProductAsLink).join("<br>");
+    } else {
+      productContext = `Je ne suis pas sûre de bien comprendre votre demande. Pouvez-vous préciser votre besoin ou le produit Elia que vous recherchez ?`;
+    }
 
     messagesToSend.push({
       role: "system",
@@ -193,11 +208,14 @@ app.post('/api/chat', async (req, res) => {
     // Appel à OpenAI avec l'historique des messages
     const reply = await callOpenAI(messagesToSend);
 
-    // Ajouter la réponse de l'OpenAI à l'historique
-    userConversations[userId].push({ role: "assistant", content: reply });
+    // Mettre en gras les mots importants dynamiquement
+    const formattedReply = highlightImportantWords(reply, userMessage);
 
-    console.log(`Réponse générée [${userId}] :`, reply);
-    res.json({ reply }); // Envoi de la réponse au frontend
+    // Ajouter la réponse de l'OpenAI à l'historique
+    userConversations[userId].push({ role: "assistant", content: formattedReply });
+
+    console.log(`Réponse générée [${userId}] :`, formattedReply);
+    res.json({ reply: formattedReply }); // Envoi de la réponse au frontend
   } catch (error) {
     console.error("Erreur dans le backend :", error.message || error);
     res.status(500).json({
