@@ -145,7 +145,8 @@ app.post('/api/chat', async (req, res) => {
             - Propose plusieurs produits menstruels si plusieurs options sont pertinentes et demande de préciser le besoin pour affiner la réponse.
             - Pose des questions en entonnoir : larges puis précises pour affiner ton diagnostic.
             - Ne considère jamais la conversation comme terminée sauf si l'utilisateur le précise.
-            - Mentionne à la fin de chaque discussion que tes réponses sont une aide et ne remplacent pas une consultation médicale.`,
+            - Mentionne à la fin de chaque discussion que tes réponses sont une aide et ne remplacent pas une consultation médicale.
+            - ne mentionne pas de marques concurrentes`,
         },
       ];
     }
