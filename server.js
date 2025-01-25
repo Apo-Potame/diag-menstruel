@@ -8,7 +8,7 @@ const PORT = process.env.PORT || 3000;
 
 // Stocker les historiques des conversations
 const userConversations = {};
-const MAX_HISTORY_LENGTH = 20; // Limite de l'historique à 20 messages
+const MAX_HISTORY_LENGTH = 20; // Limite de l'historique à 20 messages utilisateur
 
 // Middleware pour traiter les requêtes JSON et ajouter des headers CORS
 app.use(bodyParser.json());
@@ -84,18 +84,18 @@ async function fetchShopifyProducts() {
           .filter(product => product.published_at) // Filtrer uniquement les produits actifs
           .map(product => {
             const fullDescription = product.body_html.replace(/<[^>]*>/g, ''); // Nettoyer les descriptions HTML
-            const description = fullDescription.slice(0, 300); // Résumer à 300 caractères
 
-            // Extraire des informations spécifiques
-            const fluxMatch = fullDescription.match(/flux\s+(léger|moyen|abondant|hémorragique)/i);
-            const flux = fluxMatch ? fluxMatch[0] : "Non spécifié";
+            // Extraire la phrase contenant le mot "flux" s'il y en a une
+            const fluxSentence = fullDescription.match(/[^.]*flux[^.]*\./i);
+            const fluxInfo = fluxSentence ? fluxSentence[0].trim() : "Flux non spécifié";
+
+            // Résumer la description (max 300 caractères)
+            const shortDescription = fullDescription.slice(0, 300);
 
             return {
               name: product.title,
-              description: description,
-              flux: flux,
+              description: `${shortDescription} ${fluxInfo}`,
               url: `https://${SHOPIFY_STORE_URL}/products/${product.handle}`,
-              appearance: fullDescription.includes("dentelle") ? "Avec dentelle" : "Classique",
             };
           })
       );
@@ -121,7 +121,7 @@ app.get('/', (req, res) => {
 
 // Route pour le chatbot
 app.post('/api/chat', async (req, res) => {
-  const userMessage = req.body.userMessage;
+  const userMessage = req.body.userMessage.toLowerCase();
   const userId = req.body.userId;
 
   if (!userMessage || !userId) {
@@ -140,11 +140,8 @@ app.post('/api/chat', async (req, res) => {
           content: `Tu es une sage-femme virtuelle experte en santé féminine et menstruelle. Tu connais parfaitement les produits de la marque Elia. Voici les règles pour répondre :
             - Utilise des sources médicales fiables.
             - Vouvoies toujours l'utilisateur.
-            - Recommande les culottes menstruelles Elia en expliquant leurs avantages si pertinent.
-            - Utilise uniquement des produits Elia existants en te référant au flux produit.
-            - Pose des questions en entonnoir pour affiner ton diagnostic. Une ou deux questions par message max.
-            - Ne considère jamais la conversation comme terminée sauf si l'utilisateur le précise.
-            - Mentionne à la fin de chaque discussion que tes réponses sont une aide et ne remplacent pas une consultation médicale.`,
+            - Recommande les produits Elia uniquement en te basant sur leur flux et leurs caractéristiques.
+            - Si un produit spécifique est demandé, donne des détails clairs sur celui-ci.`,
         },
       ];
     }
@@ -162,13 +159,21 @@ app.post('/api/chat', async (req, res) => {
     // Récupération des produits Shopify
     const products = await fetchShopifyProducts();
 
-    // Ajout des produits au contexte pour une réponse plus pertinente
-    const productContext = products
-      .map(p => `<strong>${p.name}</strong>: ${p.description} (${p.flux}, ${p.appearance}) <a href="${p.url}" target="_blank">Voir le produit</a>`)
-      .join("<br>");
+    // Filtrer pour répondre précisément
+    const relevantProduct = products.find(product =>
+      userMessage.includes(product.name.toLowerCase())
+    );
+
+    const productContext = relevantProduct
+      ? `<strong>${relevantProduct.name}</strong>: ${relevantProduct.description} <a href="${relevantProduct.url}" target="_blank">Voir le produit</a>`
+      : `Je n'ai pas trouvé de produit correspondant précisément à votre demande. Voici les produits disponibles :<br>` +
+        products
+          .map(p => `<strong>${p.name}</strong>: ${p.description} <a href="${p.url}" target="_blank">Voir le produit</a>`)
+          .join("<br>");
+
     messagesToSend.push({
       role: "system",
-      content: `Voici les produits Elia disponibles actuellement : <br>${productContext}`,
+      content: productContext,
     });
 
     // Appel à OpenAI avec l'historique des messages
@@ -184,34 +189,6 @@ app.post('/api/chat', async (req, res) => {
     res.status(500).json({
       error: "Erreur du serveur.",
       details: error.message || "Une erreur inattendue est survenue.",
-    });
-  }
-});
-
-// Route de test pour vérifier l'API Shopify
-app.get('/api/test-products', async (req, res) => {
-  try {
-    const products = await fetchShopifyProducts();
-    res.json({ products });
-  } catch (error) {
-    console.error("Erreur lors du test Shopify :", error.message || error);
-    res.status(500).json({
-      error: "Erreur lors du test Shopify.",
-      details: error.message,
-    });
-  }
-});
-
-// Route de test pour vérifier l'API OpenAI
-app.get('/api/test-openai', async (req, res) => {
-  try {
-    const reply = await callOpenAI([{ role: "user", content: "Test de l'API OpenAI" }], 50);
-    res.json({ reply });
-  } catch (error) {
-    console.error("Erreur lors du test OpenAI :", error.message || error);
-    res.status(500).json({
-      error: "Erreur lors du test OpenAI.",
-      details: error.message,
     });
   }
 });
