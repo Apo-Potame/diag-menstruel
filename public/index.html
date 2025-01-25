@@ -177,29 +177,17 @@
     // Afficher une réponse progressivement (effet de typewriter)
     async function typeResponse(message, targetDiv) {
       const typingDelay = 30;
-      isTyping = true;
-      updateInputState();
+      isTyping = true; // Le bot commence à taper
+      updateInputState(); // Désactiver l'entrée utilisateur
       let currentText = "";
       for (let i = 0; i < message.length; i++) {
         currentText += message[i];
         targetDiv.innerHTML = currentText;
         await new Promise((resolve) => setTimeout(resolve, typingDelay));
       }
-      isTyping = false;
+      isTyping = false; // Le bot a fini de taper
       isBotTurn = false; // Le tour revient à l'utilisateur
-      updateInputState();
-    }
-
-    // Désactiver l'entrée utilisateur
-    function disableUserInput() {
-      isBotTurn = true;
-      updateInputState();
-    }
-
-    // Activer l'entrée utilisateur
-    function enableUserInput() {
-      isBotTurn = false;
-      updateInputState();
+      updateInputState(); // Réactiver l'entrée utilisateur
     }
 
     // Afficher un message d'attente
@@ -264,7 +252,8 @@
         "Bonjour ! Je suis votre sage-femme virtuelle. Je vais vous poser quelques questions pour comprendre votre problème. N'hésitez pas à me répondre en détail !",
         "bot"
       );
-      enableUserInput();
+      isBotTurn = false; // Activer le tour de l'utilisateur après le message de bienvenue
+      updateInputState();
     };
 
     sendButton.addEventListener("click", sendMessage);
@@ -274,6 +263,18 @@
         sendMessage();
       }
     });
+
+    // Désactiver complètement l'entrée utilisateur
+    function disableUserInput() {
+      isBotTurn = true;
+      updateInputState();
+    }
+
+    // Réactiver l'entrée utilisateur
+    function enableUserInput() {
+      isBotTurn = false;
+      updateInputState();
+    }
   </script>
 </body>
 </html>
