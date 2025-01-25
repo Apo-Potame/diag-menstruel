@@ -129,7 +129,7 @@
   <div id="chat-container">
     <div id="chat-messages"></div>
     <div id="chat-input">
-      <textarea id="user-input" placeholder="Une question de santé féminine ? Expliquez-moi votre problème ici."></textarea>
+      <textarea id="user-input" placeholder="Une question de santé féminine ? Expliquez-moi votre problème ici." disabled></textarea>
       <button id="send-button" disabled>Envoyer</button>
     </div>
   </div>
@@ -138,8 +138,8 @@
     const userInput = document.getElementById("user-input");
     const sendButton = document.getElementById("send-button");
 
-    let isTyping = false; // Gestion de l'état d'écriture
-    let isBotTurn = true; // Le bot commence par défaut
+    let isBotTurn = true; // Contrôle du tour : le bot commence toujours
+    let isTyping = false; // État d'écriture du chatbot
 
     // Générer un identifiant unique pour chaque utilisateur
     let userId = localStorage.getItem("userId");
@@ -150,14 +150,17 @@
 
     console.log("Identifiant utilisateur :", userId);
 
-    // Activer ou désactiver le bouton Envoyer en fonction de l'état
-    function updateSendButtonState() {
-      sendButton.disabled = isBotTurn || isTyping || userInput.value.trim() === "";
+    // Activer/désactiver le bouton et le champ texte
+    function updateInputState() {
+      const isDisabled = isBotTurn || isTyping;
+      userInput.disabled = isDisabled;
+      sendButton.disabled = isDisabled || userInput.value.trim() === "";
     }
 
-    userInput.addEventListener("input", updateSendButtonState);
+    // Détecter les changements dans le champ texte
+    userInput.addEventListener("input", updateInputState);
 
-    // Fonction pour afficher un message
+    // Afficher un message
     function displayMessage(message, sender, isHTML = false) {
       const messageDiv = document.createElement("div");
       messageDiv.classList.add("message", sender);
@@ -171,7 +174,35 @@
       return messageDiv;
     }
 
-    // Afficher un message d'attente temporaire
+    // Afficher une réponse progressivement (effet de typewriter)
+    async function typeResponse(message, targetDiv) {
+      const typingDelay = 30;
+      isTyping = true;
+      updateInputState();
+      let currentText = "";
+      for (let i = 0; i < message.length; i++) {
+        currentText += message[i];
+        targetDiv.innerHTML = currentText;
+        await new Promise((resolve) => setTimeout(resolve, typingDelay));
+      }
+      isTyping = false;
+      isBotTurn = false; // Le tour revient à l'utilisateur
+      updateInputState();
+    }
+
+    // Désactiver l'entrée utilisateur
+    function disableUserInput() {
+      isBotTurn = true;
+      updateInputState();
+    }
+
+    // Activer l'entrée utilisateur
+    function enableUserInput() {
+      isBotTurn = false;
+      updateInputState();
+    }
+
+    // Afficher un message d'attente
     function showWaitingMessage() {
       return new Promise((resolve) => {
         setTimeout(() => {
@@ -184,48 +215,17 @@
       });
     }
 
-    // Fonction pour afficher une réponse progressivement (effet de typewriter)
-    async function typeResponse(message, targetDiv) {
-      const typingDelay = 30;
-      let currentText = "";
-      isTyping = true;
-      updateSendButtonState(); // Met à jour l'état du bouton
-      for (let i = 0; i < message.length; i++) {
-        currentText += message[i];
-        targetDiv.innerHTML = currentText;
-        await new Promise((resolve) => setTimeout(resolve, typingDelay));
-      }
-      isTyping = false;
-      isBotTurn = false; // Fin du tour du bot
-      updateSendButtonState(); // Réactiver le bouton Envoyer
-    }
-
-    // Désactiver l'entrée utilisateur
-    function disableUserInput() {
-      isBotTurn = true;
-      updateSendButtonState();
-    }
-
-    // Activer l'entrée utilisateur
-    function enableUserInput() {
-      isBotTurn = false;
-      updateSendButtonState();
-    }
-
-    // Envoyer une requête au backend
+    // Envoyer un message
     async function sendMessage() {
-      if (isBotTurn || isTyping) return; // Bloquer si ce n'est pas au tour de l'utilisateur
+      if (isBotTurn || isTyping) return; // Bloquer si ce n'est pas le tour de l'utilisateur
 
       const userMessage = userInput.value.trim();
       if (!userMessage) return;
 
       disableUserInput(); // Désactiver l'entrée utilisateur
-
-      // Affiche le message de l'utilisateur
       displayMessage(userMessage, "user");
       userInput.value = "";
 
-      // Affiche le message d'attente
       const waitingMessage = await showWaitingMessage();
 
       try {
@@ -250,17 +250,15 @@
             "Je n'ai pas pu obtenir de réponse. Réessayez plus tard.",
             "bot"
           );
-          enableUserInput();
         }
       } catch (error) {
         messagesContainer.removeChild(waitingMessage);
         displayMessage("Une erreur est survenue. Réessayez plus tard.", "bot");
         console.error("Erreur côté frontend :", error);
-        enableUserInput();
       }
     }
 
-    // Ajouter un message de bienvenue automatique
+    // Ajouter un message de bienvenue
     window.onload = () => {
       displayMessage(
         "Bonjour ! Je suis votre sage-femme virtuelle. Je vais vous poser quelques questions pour comprendre votre problème. N'hésitez pas à me répondre en détail !",
@@ -271,7 +269,7 @@
 
     sendButton.addEventListener("click", sendMessage);
     userInput.addEventListener("keypress", (e) => {
-      if (e.key === "Enter") {
+      if (e.key === "Enter" && !sendButton.disabled) {
         e.preventDefault();
         sendMessage();
       }
