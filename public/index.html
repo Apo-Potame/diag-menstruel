@@ -199,6 +199,8 @@
       const userMessage = userInput.value.trim();
       if (!userMessage) return;
 
+      sendButton.disabled = true; // Désactiver le bouton immédiatement
+
       // Affiche le message de l'utilisateur
       displayMessage(userMessage, "user");
       userInput.value = "";
@@ -233,6 +235,9 @@
         messagesContainer.removeChild(waitingMessage); // Supprime le message d'attente en cas d'erreur
         displayMessage("J'ai une urgence au cabinet. Vous pouvez revenir plus tard ?", "bot");
         console.error("Erreur côté frontend :", error);
+      } finally {
+        isTyping = false;
+        sendButton.disabled = false; // Réactiver le bouton après réponse
       }
     }
 
@@ -248,7 +253,7 @@
     // Gestion des événements
     sendButton.addEventListener("click", sendMessage);
     userInput.addEventListener("keypress", (e) => {
-      if (e.key === "Enter") {
+      if (e.key === "Enter" && !isTyping) {
         e.preventDefault();
         sendMessage();
       }
