@@ -107,6 +107,11 @@
       background-color: #444; /* Gris foncé */
     }
 
+    #send-button:disabled {
+      background-color: #ccc; /* Gris clair */
+      cursor: not-allowed;
+    }
+
     /* Media queries pour ajuster la hauteur sur différents écrans */
     @media (max-width: 768px) { /* Tablettes */
       #chat-container {
@@ -126,7 +131,7 @@
     <div id="chat-messages"></div>
     <div id="chat-input">
       <textarea id="user-input" placeholder="Une question de santé féminine ? Expliquez-moi votre problème ici, et je ferai de mon mieux pour vous aider."></textarea>
-      <button id="send-button">Envoyer</button>
+      <button id="send-button" disabled>Envoyer</button>
     </div>
   </div>
   <script>
@@ -142,6 +147,8 @@
     }
 
     console.log("Identifiant utilisateur :", userId);
+
+    let isTyping = false; // Variable pour bloquer l'envoi pendant l'effet typewriter
 
     // Fonction pour afficher un message
     function displayMessage(message, sender, isHTML = false) {
@@ -174,15 +181,21 @@
     async function typeResponse(message, targetDiv) {
       const typingDelay = 30; // Temps entre chaque caractère (en ms)
       let currentText = "";
+      isTyping = true;
+      sendButton.disabled = true; // Désactiver le bouton Envoyer
       for (let i = 0; i < message.length; i++) {
         currentText += message[i];
         targetDiv.innerHTML = currentText;
         await new Promise((resolve) => setTimeout(resolve, typingDelay));
       }
+      isTyping = false;
+      sendButton.disabled = false; // Réactiver le bouton Envoyer
     }
 
     // Envoyer une requête au backend
     async function sendMessage() {
+      if (isTyping) return; // Bloquer l'envoi si l'effet typewriter est actif
+
       const userMessage = userInput.value.trim();
       if (!userMessage) return;
 
@@ -229,6 +242,7 @@
         "Bonjour ! Je suis votre sage-femme virtuelle. Je vais vous poser quelques questions pour comprendre votre problème. N'hésitez pas à me répondre en détail !",
         "bot"
       );
+      sendButton.disabled = false; // Activer le bouton Envoyer au chargement
     };
 
     // Gestion des événements
