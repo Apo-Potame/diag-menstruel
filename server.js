@@ -118,11 +118,14 @@ function formatProductAsLink(product) {
   return `<strong>${product.name}</strong>: ${product.description} <a href="${product.url}" target="_blank">voir le produit ici</a>`;
 }
 
-// Mettre en gras les mots clés dynamiquement en fonction du message utilisateur
+// Mettre en gras tous les mots importants dynamiquement dans la réponse
 function highlightImportantWords(reply, userMessage) {
-  const wordsToHighlight = userMessage.split(' ').filter(word => word.length > 3); // Filtrer les mots clés (longueur > 3)
+  // Supprimer la ponctuation des mots du message utilisateur
+  const cleanedUserMessage = userMessage.replace(/[.,!?]/g, '');
+  const wordsToHighlight = cleanedUserMessage.split(' ').filter(word => word.length > 3); // Filtrer les mots clés (longueur > 3)
   const uniqueWords = [...new Set(wordsToHighlight)]; // Éviter les doublons
 
+  // Mettre en gras les mots clés dans la réponse
   let highlightedReply = reply;
   uniqueWords.forEach(word => {
     const regex = new RegExp(`\\b${word}\\b`, 'gi');
@@ -140,7 +143,7 @@ app.get('/', (req, res) => {
 
 // Route pour le chatbot
 app.post('/api/chat', async (req, res) => {
-  const userMessage = req.body.userMessage.toLowerCase();
+  const userMessage = req.body.userMessage;
   const userId = req.body.userId;
 
   if (!userMessage || !userId) {
@@ -163,14 +166,14 @@ app.post('/api/chat', async (req, res) => {
             - Pose des questions en entonnoir : larges puis précises pour affiner ton diagnostic.
             - les produits recommandés sont uniquement les produits Elia qui font partie de la liste.
             - Recommande les produits Elia si cela est opportun dans la discussion.
-            - Les culottes menstruelles ne soulagent pas les douleurs mais améliorent le confort pendant cette période.
             - Ne propose pas de maillots de bain sauf si cela est explicitement demandé.
             - Propose plusieurs produits menstruels si plusieurs options sont pertinentes et demande de préciser le besoin pour affiner la réponse.
             - Ne considère jamais la conversation comme terminée sauf si l'utilisateur le précise.
             - Mentionne à la fin de chaque discussion que tes réponses sont une aide et ne remplacent pas une consultation médicale.
             - ne mentionne pas de marques concurrentes
             - Elia est une marque française écoresponsable de culottes menstruelles en coton bio, certifiées Oeko-Tex
-            - Tu peux trouver plus d'informations sur le site www.elia-lingerie.com`,
+            - Tu peux trouver plus d'informations sur le site www.elia-lingerie.com
+`,
         },
       ];
     }
@@ -190,7 +193,7 @@ app.post('/api/chat', async (req, res) => {
 
     // Recherche des produits pertinents pour l'utilisateur
     const relevantProducts = products.filter(product =>
-      userMessage.includes(product.name.toLowerCase())
+      userMessage.toLowerCase().includes(product.name.toLowerCase())
     );
 
     // Gestion des produits pertinents
