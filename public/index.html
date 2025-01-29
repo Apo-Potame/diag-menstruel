@@ -70,7 +70,7 @@
       display: flex;
       padding: 8px;
       background-color: #fff;
-      position: relative;
+      border-top: 2px solid #000;
     }
 
     #user-input {
@@ -154,7 +154,7 @@
     <div id="chat-messages"></div>
     <div id="options-container"></div> <!-- Conteneur des options cliquables -->
     <div id="chat-input">
-      <textarea id="user-input" placeholder="Une question de santé féminine ? Expliquez-moi votre problème ici." disabled></textarea>
+      <textarea id="user-input" placeholder="Une question de santé féminine ?" disabled></textarea>
       <button id="send-button" disabled>Envoyer</button>
     </div>
   </div>
@@ -165,8 +165,8 @@
     const sendButton = document.getElementById("send-button");
     const optionsContainer = document.getElementById("options-container");
 
-    let isBotTurn = true;
-    let isTyping = false;
+    let isBotTurn = false;  
+    let isTyping = false;  
 
     let userId = localStorage.getItem("userId");
     if (!userId) {
@@ -195,33 +195,6 @@
       return messageDiv;
     }
 
-    async function typeResponse(message, targetDiv) {
-      const typingDelay = 30;
-      isTyping = true;
-      updateInputState();
-      let currentText = "";
-      for (let i = 0; i < message.length; i++) {
-        currentText += message[i];
-        targetDiv.innerHTML = currentText;
-        await new Promise((resolve) => setTimeout(resolve, typingDelay));
-      }
-      isTyping = false;
-      isBotTurn = false;
-      updateInputState();
-    }
-
-    function showWaitingMessage() {
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          const waitingMessage = displayMessage(
-            "Votre sage-femme est en train de vous répondre...",
-            "bot"
-          );
-          resolve(waitingMessage);
-        }, 1000);
-      });
-    }
-
     function displayOptions(options) {
       optionsContainer.innerHTML = "";
       options.forEach(option => {
@@ -239,7 +212,7 @@
       displayMessage(userMessage, "user");
       userInput.value = "";
       disableUserInput();
-      const waitingMessage = await showWaitingMessage();
+      const waitingMessage = displayMessage("Votre sage-femme réfléchit...", "bot");
 
       try {
         const response = await fetch("/api/chat", {
@@ -254,27 +227,37 @@
         if (data.reply) {
           const botMessageDiv = document.createElement("div");
           botMessageDiv.classList.add("message", "bot");
-          botMessageDiv.innerHTML = "&nbsp;";
+          botMessageDiv.innerHTML = data.reply;
           messagesContainer.appendChild(botMessageDiv);
-
-          await typeResponse(data.reply, botMessageDiv);
-
-          if (data.options) {
-            displayOptions(data.options);
-          }
         }
+
+        if (data.options) {
+          displayOptions(data.options);
+        }
+
+        enableUserInput();
       } catch (error) {
         messagesContainer.removeChild(waitingMessage);
-        displayMessage("Une erreur est survenue. Réessayez plus tard.", "bot");
+        displayMessage("Une erreur est survenue, réessayez plus tard.", "bot");
         console.error("Erreur côté frontend :", error);
+        enableUserInput();
       }
     }
 
-    window.onload = () => {
-      displayMessage("Bonjour ! Je suis votre sage-femme virtuelle. N'hésitez pas à me poser vos questions ou choisissez une option ci-dessous.", "bot");
-      displayOptions(["Règles douloureuses", "Flux abondant", "Absence de règles", "Grossesse", "Autre souci gynécologique"]);
+    function disableUserInput() {
+      isBotTurn = true;
+      updateInputState();
+    }
+
+    function enableUserInput() {
       isBotTurn = false;
       updateInputState();
+    }
+
+    window.onload = () => {
+      displayMessage("Bonjour ! Je suis votre sage-femme virtuelle. Comment puis-je vous aider ?", "bot");
+      displayOptions(["Règles douloureuses", "Flux abondant", "Absence de règles", "Grossesse", "Autre souci gynécologique"]);
+      enableUserInput();
     };
 
     sendButton.addEventListener("click", () => sendMessage());
