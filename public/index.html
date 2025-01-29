@@ -202,7 +202,7 @@
         button.classList.add("option-button");
         button.textContent = option;
         button.addEventListener("click", () => {
-          optionsContainer.innerHTML = ""; // Efface les options après choix
+          optionsContainer.innerHTML = ""; 
           sendMessage(option);
         });
         optionsContainer.appendChild(button);
