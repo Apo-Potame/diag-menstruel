@@ -165,8 +165,8 @@
     const sendButton = document.getElementById("send-button");
     const optionsContainer = document.getElementById("options-container");
 
-    let isBotTurn = false;  
-    let isTyping = false;  
+    let isBotTurn = false;
+    let isTyping = false;
 
     let userId = localStorage.getItem("userId");
     if (!userId) {
@@ -175,7 +175,7 @@
     }
 
     function updateInputState() {
-      const isDisabled = isBotTurn || isTyping;
+      const isDisabled = isBotTurn || isTyping || optionsContainer.childElementCount > 0;
       userInput.disabled = isDisabled;
       sendButton.disabled = isDisabled || userInput.value.trim() === "";
     }
@@ -201,9 +201,13 @@
         const button = document.createElement("button");
         button.classList.add("option-button");
         button.textContent = option;
-        button.addEventListener("click", () => sendMessage(option));
+        button.addEventListener("click", () => {
+          optionsContainer.innerHTML = ""; // Efface les options après choix
+          sendMessage(option);
+        });
         optionsContainer.appendChild(button);
       });
+      updateInputState();
     }
 
     async function sendMessage(userMessage = userInput.value.trim()) {
@@ -233,9 +237,10 @@
 
         if (data.options) {
           displayOptions(data.options);
+        } else {
+          enableUserInput();
         }
 
-        enableUserInput();
       } catch (error) {
         messagesContainer.removeChild(waitingMessage);
         displayMessage("Une erreur est survenue, réessayez plus tard.", "bot");
