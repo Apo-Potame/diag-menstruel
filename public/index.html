@@ -68,9 +68,9 @@
 
     #chat-input {
       display: flex;
-      flex-direction: column;
       padding: 8px;
       background-color: #fff;
+      position: relative;
     }
 
     #user-input {
@@ -89,14 +89,13 @@
     }
 
     #user-input::placeholder {
-      white-space: pre-wrap;
       color: #aaa;
       font-style: italic;
     }
 
     #send-button {
       padding: 8px 16px;
-      margin-top: 8px;
+      margin-left: 8px;
       background-color: #000;
       color: white;
       border: none;
@@ -113,24 +112,28 @@
       cursor: not-allowed;
     }
 
-    .options-container {
+    #options-container {
       display: flex;
-      flex-direction: column;
+      flex-wrap: wrap;
+      justify-content: center;
+      padding: 8px;
       gap: 8px;
-      margin-top: 8px;
+      background-color: #fff;
+      border-top: 2px solid #000;
     }
 
     .option-button {
-      background-color: #ddd;
+      padding: 8px 12px;
+      background-color: #efe9de;
+      color: #000;
       border: 1px solid #000;
-      padding: 10px;
       border-radius: 4px;
       cursor: pointer;
-      text-align: center;
+      font-size: 14px;
     }
 
     .option-button:hover {
-      background-color: #bbb;
+      background-color: #d9c8b3;
     }
 
     @media (max-width: 768px) {
@@ -149,10 +152,10 @@
 <body>
   <div id="chat-container">
     <div id="chat-messages"></div>
+    <div id="options-container"></div> <!-- Ajout du conteneur pour les options -->
     <div id="chat-input">
-      <textarea id="user-input" placeholder="Une question de santé féminine ?" disabled></textarea>
+      <textarea id="user-input" placeholder="Une question de santé féminine ? Expliquez-moi votre problème ici." disabled></textarea>
       <button id="send-button" disabled>Envoyer</button>
-      <div id="options-container" class="options-container"></div> <!-- Conteneur pour les choix cliquables -->
     </div>
   </div>
 
@@ -170,8 +173,6 @@
       userId = crypto.randomUUID();
       localStorage.setItem("userId", userId);
     }
-
-    console.log("Identifiant utilisateur :", userId);
 
     function updateInputState() {
       const isDisabled = isBotTurn || isTyping;
@@ -202,7 +203,7 @@
       for (let i = 0; i < message.length; i++) {
         currentText += message[i];
         targetDiv.innerHTML = currentText;
-        await new Promise(resolve => setTimeout(resolve, typingDelay));
+        await new Promise((resolve) => setTimeout(resolve, typingDelay));
       }
       isTyping = false;
       isBotTurn = false;
@@ -210,26 +211,34 @@
     }
 
     function showWaitingMessage() {
-      return new Promise(resolve => {
+      return new Promise((resolve) => {
         setTimeout(() => {
-          const waitingMessage = displayMessage("Votre sage-femme est en train de vous répondre...", "bot");
+          const waitingMessage = displayMessage(
+            "Votre sage-femme est en train de vous répondre...",
+            "bot"
+          );
           resolve(waitingMessage);
         }, 1000);
       });
     }
 
-    async function sendMessage(userMessage = null) {
-      if (isBotTurn || isTyping) return;
+    function displayOptions(options) {
+      optionsContainer.innerHTML = "";
+      options.forEach(option => {
+        const button = document.createElement("button");
+        button.classList.add("option-button");
+        button.textContent = option;
+        button.addEventListener("click", () => sendMessage(option));
+        optionsContainer.appendChild(button);
+      });
+    }
 
-      if (!userMessage) {
-        userMessage = userInput.value.trim();
-        if (!userMessage) return;
-      }
+    async function sendMessage(userMessage = userInput.value.trim()) {
+      if (isBotTurn || isTyping || !userMessage) return;
 
-      disableUserInput();
       displayMessage(userMessage, "user");
       userInput.value = "";
-
+      disableUserInput();
       const waitingMessage = await showWaitingMessage();
 
       try {
@@ -242,7 +251,7 @@
         const data = await response.json();
         messagesContainer.removeChild(waitingMessage);
 
-        if (data && data.reply) {
+        if (data.reply) {
           const botMessageDiv = document.createElement("div");
           botMessageDiv.classList.add("message", "bot");
           botMessageDiv.innerHTML = "&nbsp;";
@@ -253,8 +262,6 @@
           if (data.options) {
             displayOptions(data.options);
           }
-        } else {
-          displayMessage("Je n'ai pas pu obtenir de réponse. Réessayez plus tard.", "bot");
         }
       } catch (error) {
         messagesContainer.removeChild(waitingMessage);
@@ -263,35 +270,20 @@
       }
     }
 
-    function displayOptions(options) {
-      optionsContainer.innerHTML = "";
-      options.forEach(option => {
-        const button = document.createElement("button");
-        button.textContent = option;
-        button.classList.add("option-button");
-        button.onclick = () => sendMessage(option);
-        optionsContainer.appendChild(button);
-      });
-    }
-
     window.onload = () => {
-      displayMessage("Bonjour ! Je suis votre sage-femme virtuelle. Sélectionnez une option ou posez votre question.", "bot");
+      displayMessage("Bonjour ! Je suis votre sage-femme virtuelle. N'hésitez pas à me poser vos questions ou choisissez une option ci-dessous.", "bot");
+      displayOptions(["Règles douloureuses", "Flux abondant", "Absence de règles", "Grossesse", "Autre souci gynécologique"]);
       isBotTurn = false;
       updateInputState();
     };
 
-    sendButton.addEventListener("click", sendMessage);
-    userInput.addEventListener("keypress", e => {
+    sendButton.addEventListener("click", () => sendMessage());
+    userInput.addEventListener("keypress", (e) => {
       if (e.key === "Enter" && !sendButton.disabled) {
         e.preventDefault();
         sendMessage();
       }
     });
-
-    function disableUserInput() {
-      isBotTurn = true;
-      updateInputState();
-    }
   </script>
 </body>
 </html>
