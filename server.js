@@ -181,8 +181,7 @@ app.post('/api/chat', async (req, res) => {
             - Mentionne à la fin de chaque discussion que tes réponses sont une aide et ne remplacent pas une consultation médicale.
             - ne mentionne pas de marques concurrentes
             - Elia est une marque française écoresponsable de culottes menstruelles en coton bio, certifiées Oeko-Tex
-            - Tu peux trouver plus d'informations sur le site www.elia-lingerie.com
-` },
+            - Tu peux trouver plus d'informations sur le site www.elia-lingerie.com` },
       ];
       userStages[userId] = "start"; // Initialisation de l'état de diagnostic
     }
