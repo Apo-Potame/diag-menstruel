@@ -6,8 +6,9 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Stocker les historiques des conversations
+// Stocker les historiques des conversations et l'état de progression
 const userConversations = {};
+const userStages = {};
 const MAX_HISTORY_LENGTH = 20; // Limite de l'historique à 20 messages utilisateur
 
 // Middleware pour traiter les requêtes JSON et ajouter des headers CORS
@@ -17,6 +18,11 @@ app.use((req, res, next) => {
   res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
   next();
 });
+
+// Fonction pour récupérer la date du jour
+function getCurrentDate() {
+  return new Date().toLocaleDateString("fr-FR");
+}
 
 // Fonction utilitaire pour appeler l'API OpenAI
 async function callOpenAI(messages, maxTokens = 500) {
@@ -50,7 +56,7 @@ async function callOpenAI(messages, maxTokens = 500) {
   return data.choices[0].message.content;
 }
 
-// Fonction pour récupérer les produits depuis Shopify avec pagination via Link headers
+// Fonction pour récupérer les produits depuis Shopify avec pagination
 async function fetchShopifyProducts() {
   const SHOPIFY_ACCESS_TOKEN = process.env.SHOPIFY_ACCESS_TOKEN;
   const SHOPIFY_STORE_URL = process.env.SHOPIFY_STORE_URL;
@@ -73,7 +79,6 @@ async function fetchShopifyProducts() {
 
     if (!response.ok) {
       const errorDetails = await response.json();
-      console.error("Erreur API Shopify :", errorDetails);
       throw new Error(`Erreur API Shopify: ${JSON.stringify(errorDetails)}`);
     }
 
@@ -81,15 +86,11 @@ async function fetchShopifyProducts() {
     if (data.products && data.products.length > 0) {
       products = products.concat(
         data.products
-          .filter(product => product.published_at) // Filtrer uniquement les produits actifs
+          .filter(product => product.published_at)
           .map(product => {
-            const fullDescription = product.body_html.replace(/<[^>]*>/g, ''); // Nettoyer les descriptions HTML
-
-            // Extraire la phrase contenant le mot "flux" s'il y en a une
+            const fullDescription = product.body_html.replace(/<[^>]*>/g, '');
             const fluxSentence = fullDescription.match(/[^.]*flux[^.]*\./i);
             const fluxInfo = fluxSentence ? fluxSentence[0].trim() : "Flux non spécifié";
-
-            // Résumer la description (max 300 caractères)
             const shortDescription = fullDescription.slice(0, 300);
 
             return {
@@ -102,22 +103,58 @@ async function fetchShopifyProducts() {
     }
 
     const linkHeader = response.headers.get('link');
-    if (linkHeader && linkHeader.includes('rel="next"')) {
-      const match = linkHeader.match(/<([^>]+)>;\s*rel="next"/);
-      nextPageUrl = match ? match[1] : null;
-    } else {
-      nextPageUrl = null;
-    }
+    nextPageUrl = linkHeader?.includes('rel="next"')
+      ? linkHeader.match(/<([^>]+)>;\s*rel="next"/)?.[1]
+      : null;
   }
 
   return products;
 }
 
-// Servir l'interface HTML
-const path = require('path');
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public/index.html'));
-});
+// Arbre des questions interactives pour le diagnostic
+const diagnosisTree = {
+  start: {
+    question: "Quel est votre principal souci en ce moment ?",
+    options: [
+      "Règles douloureuses",
+      "Flux menstruel abondant",
+      "Absence de règles",
+      "Grossesse ou post-partum",
+      "Autre souci gynécologique",
+    ],
+    next: {
+      "Règles douloureuses": "pain",
+      "Flux menstruel abondant": "heavy_flow",
+      "Absence de règles": "no_period",
+      "Grossesse ou post-partum": "pregnancy",
+      "Autre souci gynécologique": "other_issue",
+    },
+  },
+  pain: {
+    question: "Vos douleurs sont-elles associées à un des cas suivants ?",
+    options: ["Endométriose", "Syndrome prémenstruel", "Douleur inexpliquée", "Autre"],
+    next: { "Endométriose": "endometriosis", "Syndrome prémenstruel": "pms", "Douleur inexpliquée": "other_pain" },
+  },
+  heavy_flow: {
+    question: "Depuis combien de temps avez-vous un flux abondant ?",
+    options: ["Toujours eu un flux abondant", "Depuis quelques mois", "Depuis un accouchement"],
+  },
+};
+
+// Fonction pour gérer la navigation dans le diagnostic
+function getNextDiagnosisStep(userId, userChoice) {
+  if (!userStages[userId]) {
+    userStages[userId] = "start";
+  }
+
+  const currentStep = diagnosisTree[userStages[userId]];
+  if (currentStep.next && currentStep.next[userChoice]) {
+    userStages[userId] = currentStep.next[userChoice];
+    return diagnosisTree[userStages[userId]];
+  }
+
+  return null;
+}
 
 // Route pour le chatbot
 app.post('/api/chat', async (req, res) => {
@@ -125,88 +162,44 @@ app.post('/api/chat', async (req, res) => {
   const userId = req.body.userId;
 
   if (!userMessage || !userId) {
-    console.error("Erreur : Le message utilisateur ou l'ID utilisateur est vide.");
     return res.status(400).json({ error: "Le message utilisateur ou l'ID utilisateur est vide." });
   }
 
   try {
-    console.log(`Message utilisateur reçu [${userId}] :`, userMessage);
-
-    // Initialiser l'historique des conversations s'il n'existe pas
     if (!userConversations[userId]) {
       userConversations[userId] = [
-        {
-          role: "system",
-          content: `Tu es une sage-femme virtuelle experte en santé féminine et menstruelle sur le site Elia. Tu connais parfaitement les produits de la marque Elia. Voici les règles pour répondre :
-            - Utilise des sources médicales fiables.
-            - Vouvoies toujours l'utilisateur.
-            - sauf question précise de l'utilisateur, essaye de diagnostiquer son affection gynécologique ou du cycle menstruel.
-            - Pose des questions en entonnoir : larges puis précises pour affiner ton diagnostic.
-            - les produits recommandés sont uniquement les produits Elia existants qui font partie de la liste.
-            - Recommande les produits Elia si cela est opportun dans la discussion.
-            - Ne propose pas de maillots de bain sauf si cela est explicitement demandé.
-            - Propose plusieurs produits menstruels si plusieurs options sont pertinentes et demande de préciser le besoin pour affiner la réponse.
-            - Ne considère jamais la conversation comme terminée sauf si l'utilisateur le précise.
-            - Mentionne à la fin de chaque discussion que tes réponses sont une aide et ne remplacent pas une consultation médicale.
-            - ne mentionne pas de marques concurrentes
-            - Elia est une marque française écoresponsable de culottes menstruelles en coton bio, certifiées Oeko-Tex
-            - Tu peux trouver plus d'informations sur le site www.elia-lingerie.com`,
-        },
+        { role: "system", content: `Tu es une sage-femme virtuelle experte en santé féminine.` },
       ];
+      userStages[userId] = "start"; // Initialisation de l'état de diagnostic
     }
 
-    // Ajouter uniquement le message utilisateur à l'historique
     userConversations[userId].push({ role: "user", content: userMessage });
 
-    // Limiter l'historique à 20 messages utilisateur
-    const limitedHistory = userConversations[userId].filter(msg => msg.role === "user").slice(-MAX_HISTORY_LENGTH);
-    const messagesToSend = [
-      userConversations[userId][0], // Inclure le message système
-      ...limitedHistory,
-      { role: "system", content: `Date du jour : ${new Date().toLocaleDateString('fr-FR')}` }, // Ajouter la date actuelle
-    ];
+    const nextStep = getNextDiagnosisStep(userId, userMessage);
 
-    // Récupération des produits Shopify
-    const products = await fetchShopifyProducts();
-
-    // Recherche des produits pertinents pour l'utilisateur
-    const relevantProducts = products.filter(product =>
-      userMessage.toLowerCase().includes(product.name.toLowerCase())
-    );
-
-    // Gestion des produits pertinents
-    let productContext;
-    if (relevantProducts.length > 0) {
-      productContext = relevantProducts
-        .map(p => `<strong>${p.name}</strong>: ${p.description} <a href="${p.url}" target="_blank">voir le produit</a>`)
-        .join("<br>");
-    } else {
-      productContext = `Je n'ai pas trouvé de produit correspondant exactement à votre demande. Pouvez-vous préciser votre besoin ou votre préférence ?`;
+    if (nextStep) {
+      return res.json({
+        reply: `**${nextStep.question}**`,
+        options: nextStep.options,
+      });
     }
 
-    messagesToSend.push({
-      role: "system",
-      content: productContext,
-    });
+    const messagesToSend = [
+      userConversations[userId][0],
+      ...userConversations[userId].filter(msg => msg.role === "user").slice(-MAX_HISTORY_LENGTH),
+      { role: "system", content: `Date du jour : ${getCurrentDate()}` },
+    ];
 
-    // Appel à OpenAI avec l'historique des messages
     const reply = await callOpenAI(messagesToSend);
-
-    // Ajouter la réponse de l'OpenAI à l'historique
     userConversations[userId].push({ role: "assistant", content: reply });
 
-    console.log(`Réponse générée [${userId}] :`, reply);
-    res.json({ reply }); // Envoi de la réponse au frontend
+    return res.json({ reply });
   } catch (error) {
-    console.error("Erreur dans le backend :", error.message || error);
-    res.status(500).json({
-      error: "Erreur du serveur.",
-      details: error.message || "Une erreur inattendue est survenue.",
-    });
+    return res.status(500).json({ error: "Erreur du serveur.", details: error.message });
   }
 });
 
 // Lancement du serveur
 app.listen(PORT, () => {
-  console.log(`Serveur en cours d'exécution sur http://localhost:${PORT}`);
+  console.log(`Serveur en cours sur http://localhost:${PORT}`);
 });
