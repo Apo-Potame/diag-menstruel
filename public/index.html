@@ -68,6 +68,7 @@
 
     #chat-input {
       display: flex;
+      flex-direction: column;
       padding: 8px;
       background-color: #fff;
     }
@@ -95,7 +96,7 @@
 
     #send-button {
       padding: 8px 16px;
-      margin-left: 8px;
+      margin-top: 8px;
       background-color: #000;
       color: white;
       border: none;
@@ -110,6 +111,26 @@
     #send-button:disabled {
       background-color: #ccc;
       cursor: not-allowed;
+    }
+
+    .options-container {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .option-button {
+      background-color: #ddd;
+      border: 1px solid #000;
+      padding: 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      text-align: center;
+    }
+
+    .option-button:hover {
+      background-color: #bbb;
     }
 
     @media (max-width: 768px) {
@@ -129,19 +150,21 @@
   <div id="chat-container">
     <div id="chat-messages"></div>
     <div id="chat-input">
-      <textarea id="user-input" placeholder="Une question de santé féminine ? Expliquez-moi votre problème ici." disabled></textarea>
+      <textarea id="user-input" placeholder="Une question de santé féminine ?" disabled></textarea>
       <button id="send-button" disabled>Envoyer</button>
+      <div id="options-container" class="options-container"></div> <!-- Conteneur pour les choix cliquables -->
     </div>
   </div>
+
   <script>
     const messagesContainer = document.getElementById("chat-messages");
     const userInput = document.getElementById("user-input");
     const sendButton = document.getElementById("send-button");
+    const optionsContainer = document.getElementById("options-container");
 
-    let isBotTurn = true; // Contrôle du tour : le bot commence toujours
-    let isTyping = false; // État d'écriture du chatbot
+    let isBotTurn = true;
+    let isTyping = false;
 
-    // Générer un identifiant unique pour chaque utilisateur
     let userId = localStorage.getItem("userId");
     if (!userId) {
       userId = crypto.randomUUID();
@@ -150,17 +173,14 @@
 
     console.log("Identifiant utilisateur :", userId);
 
-    // Activer/désactiver le bouton et le champ texte
     function updateInputState() {
       const isDisabled = isBotTurn || isTyping;
       userInput.disabled = isDisabled;
       sendButton.disabled = isDisabled || userInput.value.trim() === "";
     }
 
-    // Détecter les changements dans le champ texte
     userInput.addEventListener("input", updateInputState);
 
-    // Afficher un message
     function displayMessage(message, sender, isHTML = false) {
       const messageDiv = document.createElement("div");
       messageDiv.classList.add("message", sender);
@@ -174,43 +194,39 @@
       return messageDiv;
     }
 
-    // Afficher une réponse progressivement (effet de typewriter)
     async function typeResponse(message, targetDiv) {
       const typingDelay = 30;
-      isTyping = true; // Le bot commence à taper
-      updateInputState(); // Désactiver l'entrée utilisateur
+      isTyping = true;
+      updateInputState();
       let currentText = "";
       for (let i = 0; i < message.length; i++) {
         currentText += message[i];
         targetDiv.innerHTML = currentText;
-        await new Promise((resolve) => setTimeout(resolve, typingDelay));
+        await new Promise(resolve => setTimeout(resolve, typingDelay));
       }
-      isTyping = false; // Le bot a fini de taper
-      isBotTurn = false; // Le tour revient à l'utilisateur
-      updateInputState(); // Réactiver l'entrée utilisateur
+      isTyping = false;
+      isBotTurn = false;
+      updateInputState();
     }
 
-    // Afficher un message d'attente
     function showWaitingMessage() {
-      return new Promise((resolve) => {
+      return new Promise(resolve => {
         setTimeout(() => {
-          const waitingMessage = displayMessage(
-            "Votre sage-femme est en train de vous répondre...",
-            "bot"
-          );
+          const waitingMessage = displayMessage("Votre sage-femme est en train de vous répondre...", "bot");
           resolve(waitingMessage);
         }, 1000);
       });
     }
 
-    // Envoyer un message
-    async function sendMessage() {
-      if (isBotTurn || isTyping) return; // Bloquer si ce n'est pas le tour de l'utilisateur
+    async function sendMessage(userMessage = null) {
+      if (isBotTurn || isTyping) return;
 
-      const userMessage = userInput.value.trim();
-      if (!userMessage) return;
+      if (!userMessage) {
+        userMessage = userInput.value.trim();
+        if (!userMessage) return;
+      }
 
-      disableUserInput(); // Désactiver l'entrée utilisateur
+      disableUserInput();
       displayMessage(userMessage, "user");
       userInput.value = "";
 
@@ -233,11 +249,12 @@
           messagesContainer.appendChild(botMessageDiv);
 
           await typeResponse(data.reply, botMessageDiv);
+
+          if (data.options) {
+            displayOptions(data.options);
+          }
         } else {
-          displayMessage(
-            "Je n'ai pas pu obtenir de réponse. Réessayez plus tard.",
-            "bot"
-          );
+          displayMessage("Je n'ai pas pu obtenir de réponse. Réessayez plus tard.", "bot");
         }
       } catch (error) {
         messagesContainer.removeChild(waitingMessage);
@@ -246,33 +263,33 @@
       }
     }
 
-    // Ajouter un message de bienvenue
+    function displayOptions(options) {
+      optionsContainer.innerHTML = "";
+      options.forEach(option => {
+        const button = document.createElement("button");
+        button.textContent = option;
+        button.classList.add("option-button");
+        button.onclick = () => sendMessage(option);
+        optionsContainer.appendChild(button);
+      });
+    }
+
     window.onload = () => {
-      displayMessage(
-        "Bonjour ! Je suis votre sage-femme virtuelle. Je vais vous poser quelques questions pour comprendre votre problème. N'hésitez pas à me répondre en détail !",
-        "bot"
-      );
-      isBotTurn = false; // Activer le tour de l'utilisateur après le message de bienvenue
+      displayMessage("Bonjour ! Je suis votre sage-femme virtuelle. Sélectionnez une option ou posez votre question.", "bot");
+      isBotTurn = false;
       updateInputState();
     };
 
     sendButton.addEventListener("click", sendMessage);
-    userInput.addEventListener("keypress", (e) => {
+    userInput.addEventListener("keypress", e => {
       if (e.key === "Enter" && !sendButton.disabled) {
         e.preventDefault();
         sendMessage();
       }
     });
 
-    // Désactiver complètement l'entrée utilisateur
     function disableUserInput() {
       isBotTurn = true;
-      updateInputState();
-    }
-
-    // Réactiver l'entrée utilisateur
-    function enableUserInput() {
-      isBotTurn = false;
       updateInputState();
     }
   </script>
