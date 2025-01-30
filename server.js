@@ -52,14 +52,36 @@ const diagnosisTree = {
   pain: {
     question: "Vos douleurs sont-elles associées à un des cas suivants ?",
     options: ["Endométriose", "Syndrome prémenstruel", "Douleur inexpliquée", "Autre (précisez)"],
+    next: {
+      "Endométriose": "endometriosis_info",
+      "Syndrome prémenstruel": "pms_info",
+      "Douleur inexpliquée": "other_pain",
+      "Autre (précisez)": "ask_user_input",
+    },
   },
   heavy_flow: {
     question: "Depuis combien de temps avez-vous un flux abondant ?",
     options: ["Toujours eu un flux abondant", "Depuis quelques mois", "Depuis un accouchement", "Autre (précisez)"],
+    next: {
+      "Toujours eu un flux abondant": "flux_long_term",
+      "Depuis quelques mois": "flux_recent",
+      "Depuis un accouchement": "flux_postpartum",
+      "Autre (précisez)": "ask_user_input",
+    },
   },
   other_issue: {
     question: "Pouvez-vous préciser votre problème gynécologique ?",
     options: ["Douleurs pelviennes", "Saignements anormaux", "Infections fréquentes", "Autre (précisez)"],
+    next: {
+      "Douleurs pelviennes": "pelvic_pain_info",
+      "Saignements anormaux": "bleeding_info",
+      "Infections fréquentes": "infection_info",
+      "Autre (précisez)": "ask_user_input",
+    },
+  },
+  ask_user_input: {
+    question: "Pouvez-vous préciser votre situation en quelques mots ?",
+    options: [],
   },
 };
 
@@ -95,20 +117,7 @@ app.post('/api/chat', async (req, res) => {
     // Initialisation des conversations et du diagnostic
     if (!userConversations[userId]) {
       userConversations[userId] = [
-        { role: "system", content: `Tu es une sage-femme virtuelle experte en santé féminine et menstruelle sur le site Elia. Tu connais parfaitement les produits de la marque Elia. Voici les règles pour répondre :
-            - Utilise des sources médicales fiables.
-            - Vouvoies toujours l'utilisateur.
-            - sauf question précise de l'utilisateur, essaye de diagnostiquer son affection gynécologique ou du cycle menstruel.
-            - Pose des questions en entonnoir : larges puis précises pour affiner ton diagnostic.
-            - les produits recommandés sont uniquement les produits Elia existants qui font partie de la liste.
-            - Recommande les produits Elia si cela est opportun dans la discussion.
-            - Ne propose pas de maillots de bain sauf si cela est explicitement demandé.
-            - Propose plusieurs produits menstruels si plusieurs options sont pertinentes et demande de préciser le besoin pour affiner la réponse.
-            - Ne considère jamais la conversation comme terminée sauf si l'utilisateur le précise.
-            - Mentionne à la fin de chaque discussion que tes réponses sont une aide et ne remplacent pas une consultation médicale.
-            - ne mentionne pas de marques concurrentes
-            - Elia est une marque française écoresponsable de culottes menstruelles en coton bio, certifiées Oeko-Tex
-            - Tu peux trouver plus d'informations sur le site www.elia-lingerie.com` },
+        { role: "system", content: `Tu es une sage-femme virtuelle experte en santé féminine. Tu es soit Anne, soit Louisa, et restes la même tout au long de la conversation.` },
       ];
       userStages[userId] = "start";
     }
@@ -125,10 +134,10 @@ app.post('/api/chat', async (req, res) => {
       });
     }
 
-    // Si l'utilisateur a choisi "Autre (précisez)", demander plus de détails
-    if (userMessage.includes("Autre (précisez)")) {
+    // Gestion de la saisie utilisateur après "Autre (précisez)"
+    if (userStages[userId] === "ask_user_input") {
       return res.json({
-        reply: "Pouvez-vous préciser votre situation ?",
+        reply: "Merci pour cette précision. Pouvez-vous me donner plus de détails ?",
         options: [],
         sageFemme,
       });
