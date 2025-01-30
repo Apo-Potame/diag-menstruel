@@ -63,12 +63,22 @@ app.post('/api/chat', async (req, res) => {
 
   userConversations[userId].push({ role: "user", content: userMessage });
 
-  // Vérification : si on est dans le champ libre, stocker la réponse et revenir au début
+  // Vérification : si on est dans un mode de saisie libre, enregistrer la réponse et revenir au diagnostic
   if (userStages[userId] === "ask_user_input") {
     userStages[userId] = "start"; // Réinitialisation après saisie libre
     return res.json({
       reply: `Merci pour cette précision. Pouvez-vous me donner plus de détails ?`,
       options: ["Retour"],
+      sageFemme,
+    });
+  }
+
+  // Vérification : si l'utilisateur tape du texte libre, le prendre en compte
+  const currentStep = diagnosisTree[userStages[userId]];
+  if (!currentStep || (currentStep.options && !currentStep.options.includes(userMessage))) {
+    return res.json({
+      reply: "Je vais essayer de mieux comprendre. Pouvez-vous préciser votre problème ?",
+      options: ["Retour", "Autre (précisez)"],
       sageFemme,
     });
   }
