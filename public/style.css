@@ -141,13 +141,11 @@ body {
       }
     }
 
-
 #sage-femme-container {
   position: absolute;
-  bottom: 10px; /* Positionné au fond du conteneur */
-  right: 10px; /* Aligné à droite */
-  z-index: 5;
-  width: 200px; /* Augmenté */
+  bottom: 10px;
+  right: 10px;
+  width: 150px;
   height: auto;
 }
 
@@ -155,6 +153,5 @@ body {
   width: 100%;
   height: auto;
 }
-
 
 
