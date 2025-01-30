@@ -7,8 +7,9 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Servir les fichiers statiques depuis le dossier "public"
+// Middleware pour servir les fichiers statiques depuis le dossier "public"
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.json()); // Ajout pour s'assurer que req.body est bien interprété
 
 // Stocker les conversations, l'état du diagnostic et la sage-femme assignée
 const userConversations = {};
@@ -114,7 +115,7 @@ function getNextDiagnosisStep(userId, userChoice) {
   }
 
   const currentStep = diagnosisTree[userStages[userId]];
-  if (currentStep.next && currentStep.next[userChoice]) {
+  if (currentStep && currentStep.next && currentStep.next[userChoice]) {
     userStages[userId] = currentStep.next[userChoice];
     return diagnosisTree[userStages[userId]];
   }
@@ -124,11 +125,14 @@ function getNextDiagnosisStep(userId, userChoice) {
 
 // Route pour le chatbot
 app.post('/api/chat', async (req, res) => {
-  const { userMessage, userId } = req.body;
+  console.log("Requête reçue :", req.body); // Debugging pour voir le contenu de la requête
 
-  if (!userMessage || !userId) {
-    return res.status(400).json({ error: "Message utilisateur ou ID vide." });
+  if (!req.body || !req.body.userMessage || !req.body.userId) {
+    console.error("Erreur : Corps de la requête invalide", req.body);
+    return res.status(400).json({ error: "Requête invalide. Données manquantes." });
   }
+
+  const { userMessage, userId } = req.body;
 
   try {
     assignSageFemme(userId);
@@ -181,11 +185,12 @@ app.post('/api/chat', async (req, res) => {
 
     return res.json({ reply, sageFemme: userSageFemme[userId] });
   } catch (error) {
+    console.error("Erreur serveur :", error);
     return res.status(500).json({ error: "Erreur serveur.", details: error.message });
   }
 });
 
 // Lancement du serveur
 app.listen(PORT, () => {
-  console.log(`Serveur en cours sur http://localhost:${PORT}`);
+  console.log(`🚀 Serveur en cours sur http://localhost:${PORT}`);
 });
