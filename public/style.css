@@ -140,3 +140,21 @@ body {
         height: 400px;
       }
     }
+
+
+#sage-femme-container {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  width: 100px;
+  height: auto;
+  z-index: 10;
+}
+
+#sage-femme-container img {
+  width: 100px;
+  height: auto;
+  border-radius: 50%;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
