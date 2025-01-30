@@ -3,6 +3,7 @@ const bodyParser = require('body-parser');
 const fetch = require('node-fetch');
 const path = require('path');
 require('dotenv').config();
+const { getNextDiagnosisStep } = require('./diagnosisTree'); // Importation de l'arbre de diagnostic
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -36,60 +37,6 @@ function assignSageFemme(userId) {
   return userSageFemme[userId];
 }
 
-// Arbre de diagnostic interactif
-const diagnosisTree = {
-  start: {
-    question: "Quel est votre principal souci ?",
-    options: ["Règles douloureuses", "Flux abondant", "Absence de règles", "Grossesse", "Autre souci gynécologique"],
-    next: {
-      "Règles douloureuses": "pain",
-      "Flux abondant": "heavy_flow",
-      "Absence de règles": "no_period",
-      "Grossesse": "pregnancy",
-      "Autre souci gynécologique": "other_issue",
-    },
-  },
-  pain: {
-    question: "Vos douleurs sont-elles associées à un des cas suivants ?",
-    options: ["Endométriose", "Syndrome prémenstruel", "Douleur inexpliquée", "Autre (précisez)"],
-    next: {
-      "Endométriose": "endometriosis_info",
-      "Syndrome prémenstruel": "pms_info",
-      "Douleur inexpliquée": "other_pain",
-      "Autre (précisez)": "ask_user_input",
-    },
-  },
-  pregnancy: {
-    question: "Avez-vous des préoccupations spécifiques concernant votre grossesse ?",
-    options: ["Calcul de la date d'accouchement", "Suivi médical", "Symptômes inhabituels", "Autre (précisez)"],
-    next: {
-      "Calcul de la date d'accouchement": "due_date",
-      "Suivi médical": "pregnancy_followup",
-      "Symptômes inhabituels": "pregnancy_symptoms",
-      "Autre (précisez)": "ask_user_input",
-    },
-  },
-  ask_user_input: {
-    question: "Pouvez-vous préciser votre situation en quelques mots ?",
-    options: [],
-  },
-};
-
-// Fonction pour gérer les étapes de diagnostic
-function getNextDiagnosisStep(userId, userChoice) {
-  if (!userStages[userId]) {
-    userStages[userId] = "start";
-  }
-
-  const currentStep = diagnosisTree[userStages[userId]];
-  if (currentStep && currentStep.next && currentStep.next[userChoice]) {
-    userStages[userId] = currentStep.next[userChoice];
-    return diagnosisTree[userStages[userId]];
-  }
-
-  return null;
-}
-
 // Route pour le chatbot
 app.post('/api/chat', async (req, res) => {
   console.log("Requête reçue :", req.body);
@@ -107,7 +54,21 @@ app.post('/api/chat', async (req, res) => {
     // Initialisation des conversations et du diagnostic
     if (!userConversations[userId]) {
       userConversations[userId] = [
-        { role: "system", content: `Tu es une sage-femme virtuelle experte en santé féminine. Tu es soit Anne, soit Louisa, et restes la même tout au long de la conversation.` },
+        { role: "system", content: `Tu es une sage-femme virtuelle experte en santé féminine et menstruelle sur le site Elia. Tu connais parfaitement les produits de la marque Elia. Voici les règles pour répondre :
+            - Utilise des sources médicales fiables.
+            - Vouvoies toujours l'utilisateur.
+            - sauf question précise de l'utilisateur, essaye de diagnostiquer son affection gynécologique ou du cycle menstruel.
+            - Pose des questions en entonnoir : larges puis précises pour affiner ton diagnostic.
+            - les produits recommandés sont uniquement les produits Elia existants qui font partie de la liste.
+            - Recommande les produits Elia si cela est opportun dans la discussion.
+            - Ne propose pas de maillots de bain sauf si cela est explicitement demandé.
+            - Propose plusieurs produits menstruels si plusieurs options sont pertinentes et demande de préciser le besoin pour affiner la réponse.
+            - Ne considère jamais la conversation comme terminée sauf si l'utilisateur le précise.
+            - Mentionne à la fin de chaque discussion que tes réponses sont une aide et ne remplacent pas une consultation médicale.
+            - ne mentionne pas de marques concurrentes
+            - Elia est une marque française écoresponsable de culottes menstruelles en coton bio, certifiées Oeko-Tex
+            - Tu peux trouver plus d'informations sur le site www.elia-lingerie.com
+` },
       ];
       userStages[userId] = "start";
     }
@@ -115,8 +76,9 @@ app.post('/api/chat', async (req, res) => {
     userConversations[userId].push({ role: "user", content: userMessage });
 
     // Vérification du diagnostic et options dynamiques
-    const nextStep = getNextDiagnosisStep(userId, userMessage);
+    const nextStep = getNextDiagnosisStep(userStages[userId], userMessage);
     if (nextStep) {
+      userStages[userId] = nextStep.nextStage;
       return res.json({
         reply: `**${nextStep.question}**`,
         options: nextStep.options.length > 0 ? nextStep.options : ["Retour"],
