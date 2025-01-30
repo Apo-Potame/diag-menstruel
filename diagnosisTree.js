@@ -1,4 +1,5 @@
-// Arbre de diagnostic interactif
+// diagnosisTree.js
+
 const diagnosisTree = {
   start: {
     question: "Quel est votre principal souci ?",
@@ -15,10 +16,10 @@ const diagnosisTree = {
     question: "Vos douleurs sont-elles associées à un des cas suivants ?",
     options: ["Endométriose", "Syndrome prémenstruel", "Douleur inexpliquée", "Autre (précisez)"],
     next: {
-      "Endométriose": "endometriosis",
-      "Syndrome prémenstruel": "pms",
+      "Endométriose": "endometriosis_info",
+      "Syndrome prémenstruel": "pms_info",
       "Douleur inexpliquée": "other_pain",
-      "Autre (précisez)": null,
+      "Autre (précisez)": "ask_user_input",
     },
   },
   heavy_flow: {
@@ -28,15 +29,17 @@ const diagnosisTree = {
       "Toujours eu un flux abondant": "chronic_heavy_flow",
       "Depuis quelques mois": "recent_heavy_flow",
       "Depuis un accouchement": "postpartum_heavy_flow",
-      "Autre (précisez)": null,
+      "Autre (précisez)": "ask_user_input",
     },
   },
   pregnancy: {
-    question: "Souhaitez-vous un calcul de votre stade de grossesse ?",
-    options: ["Oui", "Non"],
+    question: "Avez-vous des préoccupations spécifiques concernant votre grossesse ?",
+    options: ["Calcul de la date d'accouchement", "Suivi médical", "Symptômes inhabituels", "Autre (précisez)"],
     next: {
-      "Oui": "pregnancy_stage",
-      "Non": null,
+      "Calcul de la date d'accouchement": "due_date",
+      "Suivi médical": "pregnancy_followup",
+      "Symptômes inhabituels": "pregnancy_symptoms",
+      "Autre (précisez)": "ask_user_input",
     },
   },
   other_issue: {
@@ -46,28 +49,41 @@ const diagnosisTree = {
       "Douleurs pelviennes": "pelvic_pain",
       "Saignements anormaux": "abnormal_bleeding",
       "Infections fréquentes": "frequent_infections",
-      "Autre (précisez)": null,
+      "Autre (précisez)": "ask_user_input",
     },
+  },
+  ask_user_input: {
+    question: "Pouvez-vous préciser votre situation en quelques mots ?",
+    options: [],
+    next: {},
   },
 };
 
-// Fonction pour récupérer l'étape suivante en fonction de la réponse de l'utilisateur
+// Fonction pour obtenir l'étape suivante
 function getNextDiagnosisStep(userStage, userChoice) {
-  const currentStep = diagnosisTree[userStage];
-
-  if (!currentStep) return null;
-
-  const nextStepKey = currentStep.next ? currentStep.next[userChoice] : null;
-
-  if (nextStepKey && diagnosisTree[nextStepKey]) {
+  if (!userStage || userStage === "start") {
     return {
-      nextStage: nextStepKey,
-      question: diagnosisTree[nextStepKey].question,
-      options: diagnosisTree[nextStepKey].options,
+      nextStage: diagnosisTree.start.next[userChoice] || "ask_user_input",
+      question: diagnosisTree[userStage]?.question || "Pouvez-vous préciser votre problème ?",
+      options: diagnosisTree[userStage]?.options || [],
     };
   }
 
-  return null; // Si l'option n'a pas de suite (comme "Autre (précisez)")
+  const currentStep = diagnosisTree[userStage];
+
+  if (currentStep.next && currentStep.next[userChoice]) {
+    return {
+      nextStage: currentStep.next[userChoice],
+      question: diagnosisTree[currentStep.next[userChoice]].question,
+      options: diagnosisTree[currentStep.next[userChoice]].options,
+    };
+  }
+
+  return {
+    nextStage: "ask_user_input",
+    question: "Merci pour cette précision. Pouvez-vous donner plus de détails ?",
+    options: [],
+  };
 }
 
-module.exports = { diagnosisTree, getNextDiagnosisStep };
+module.exports = { getNextDiagnosisStep };
