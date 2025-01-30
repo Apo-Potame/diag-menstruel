@@ -44,7 +44,7 @@ body {
   height: auto;
   background-color: white; /* Évite qu'elle masque du texte */
   border-radius: 8px;
-  padding: 4px;
+  padding:0px;
   z-index: 10; /* Assure qu'elle reste visible */
   pointer-events: none; /* Empêche les clics accidentels */
 }
