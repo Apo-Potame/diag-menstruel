@@ -2,7 +2,7 @@ const express = require('express');
 const fetch = require('node-fetch');
 const path = require('path');
 require('dotenv').config();
-const { diagnosisTree, getNextDiagnosisStep } = require('./diagnosisTree'); // Importation correcte
+const { diagnosisTree, getNextDiagnosisStep } = require('./diagnosisTree');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -19,6 +19,7 @@ const sageFemmeImages = {
   Louisa: "https://cdn.shopify.com/s/files/1/0045/2244/2786/files/sage-femme-louisa-web.png?v=1738228119",
 };
 
+// Attribution aléatoire d'une sage-femme
 function assignSageFemme(userId) {
   if (!userSageFemme[userId]) {
     const sageFemmes = Object.keys(sageFemmeImages);
@@ -48,20 +49,15 @@ app.post('/api/chat', async (req, res) => {
       userConversations[userId] = [
         {
           role: "system",
-          content: `Tu es une sage-femme virtuelle experte en santé féminine et menstruelle sur le site Elia. Tu connais parfaitement les produits de la marque Elia. Voici les règles pour répondre :
+          content: `Tu es une sage-femme virtuelle experte en santé féminine et menstruelle sur le site Elia. Voici les règles pour répondre :
           - Utilise des sources médicales fiables.
           - Vouvoies toujours l'utilisateur.
-          - Sauf question précise, essaye de diagnostiquer son affection gynécologique ou du cycle menstruel.
           - Pose des questions en entonnoir : larges puis précises pour affiner ton diagnostic.
           - Les produits recommandés sont uniquement ceux de la marque Elia figurant dans la liste.
           - Recommande les produits Elia si cela est pertinent dans la discussion.
-          - Ne propose pas de maillots de bain sauf si cela est explicitement demandé.
-          - Propose plusieurs produits menstruels si plusieurs options sont pertinentes et demande des précisions.
-          - Ne considère jamais la conversation comme terminée sauf si l'utilisateur le précise.
-          - Mentionne à la fin de chaque discussion que tes réponses sont une aide et ne remplacent pas une consultation médicale.
+          - Mentionne que tes réponses ne remplacent pas une consultation médicale.
           - Ne mentionne pas de marques concurrentes.
-          - Elia est une marque française écoresponsable de culottes menstruelles en coton bio, certifiées Oeko-Tex.
-          - Tu peux trouver plus d'informations sur le site www.elia-lingerie.com.`
+          - Plus d'informations sur www.elia-lingerie.com.`
         }
       ];
       userStages[userId] = "start";
@@ -69,12 +65,24 @@ app.post('/api/chat', async (req, res) => {
 
     userConversations[userId].push({ role: "user", content: userMessage });
 
+    // Gestion de la saisie utilisateur après "Autre (précisez)"
+    if (userStages[userId] === "ask_user_input") {
+      userStages[userId] = "start"; // Réinitialisation après saisie libre
+      return res.json({
+        reply: `Merci pour cette précision. Pouvez-vous me donner plus de détails ?`,
+        options: ["Retour"],
+        sageFemme,
+      });
+    }
+
+    // Récupération de la prochaine étape du diagnostic
     let nextStep = getNextDiagnosisStep(userStages[userId], userMessage);
 
     if (nextStep) {
+      // Mise à jour correcte de l'état utilisateur
       userStages[userId] = Object.keys(diagnosisTree).find(key => diagnosisTree[key] === nextStep) || "start";
 
-      // Ajoute toujours "Autre (précisez)" sauf si on est dans une saisie libre
+      // Ajoute toujours "Autre (précisez)" pour permettre du texte libre
       if (nextStep.options && nextStep.options.length > 0 && !nextStep.options.includes("Autre (précisez)")) {
         nextStep.options.push("Autre (précisez)");
         nextStep.next = nextStep.next || {};
