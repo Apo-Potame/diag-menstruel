@@ -7,9 +7,9 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware pour servir les fichiers statiques depuis le dossier "public"
+// Middleware pour servir les fichiers statiques
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(express.json()); // Ajout pour s'assurer que req.body est bien interprété
+app.use(express.json()); // Ajout pour assurer le bon traitement de req.body
 
 // Stocker les conversations, l'état du diagnostic et la sage-femme assignée
 const userConversations = {};
@@ -101,6 +101,12 @@ const diagnosisTree = {
   heavy_flow: {
     question: "Quels symptômes avez-vous en plus du flux abondant ?",
     options: ["Douleurs intenses", "Caillots sanguins", "Fatigue", "Aucun autre symptôme"],
+    next: {
+      "Douleurs intenses": "pain_management",
+      "Caillots sanguins": "coagulation_check",
+      "Fatigue": "anemia_check",
+      "Aucun autre symptôme": "general_advice",
+    },
   },
   pregnancy: {
     question: "Souhaitez-vous un calcul de votre stade de grossesse ?",
