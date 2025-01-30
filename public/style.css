@@ -142,24 +142,19 @@ body {
     }
 
 
-/* Conteneur de la sage-femme */
 #sage-femme-container {
   position: absolute;
-  bottom: 75px;  /* Ajuste la hauteur pour ne pas couvrir le champ de texte */
-  right: 15px;
-  width: 80px;
-  height: 80px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  bottom: 80px; /* Juste au-dessus du champ d'entrée */
+  right: 20px; /* Collé à droite du chat */
+  z-index: 10; /* S'assurer qu'elle est bien au-dessus du texte */
+  width: 60px; /* Taille de l'image */
+  height: auto;
 }
 
-/* Image de la sage-femme */
 #sage-femme-img {
   width: 100%;
   height: auto;
-  border-radius: 50%;
-  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
-  background-color: white;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
+
 
