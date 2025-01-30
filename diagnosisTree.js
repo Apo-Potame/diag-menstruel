@@ -3,13 +3,14 @@
 const diagnosisTree = {
   start: {
     question: "Quel est votre principal souci ?",
-    options: ["Règles douloureuses", "Flux abondant", "Absence de règles", "Grossesse", "Autre souci gynécologique"],
+    options: ["Règles douloureuses", "Flux abondant", "Absence de règles", "Grossesse et postpartum", "Autre souci gynécologique", "Autre (précisez)"],
     next: {
       "Règles douloureuses": "pain",
       "Flux abondant": "heavy_flow",
       "Absence de règles": "no_period",
-      "Grossesse": "pregnancy",
+      "Grossesse et postpartum": "pregnancy",
       "Autre souci gynécologique": "other_issue",
+      "Autre (précisez)": "ask_user_input",
     },
   },
   pain: {
@@ -33,12 +34,13 @@ const diagnosisTree = {
     },
   },
   pregnancy: {
-    question: "Avez-vous des préoccupations spécifiques concernant votre grossesse ?",
-    options: ["Calcul de la date d'accouchement", "Suivi médical", "Symptômes inhabituels", "Autre (précisez)"],
+    question: "Avez-vous des préoccupations spécifiques concernant votre grossesse ou votre postpartum ?",
+    options: ["Calcul de la date d'accouchement", "Suivi médical", "Symptômes inhabituels", "Allaitement", "Autre (précisez)"],
     next: {
       "Calcul de la date d'accouchement": "due_date",
       "Suivi médical": "pregnancy_followup",
       "Symptômes inhabituels": "pregnancy_symptoms",
+      "Allaitement": "breastfeeding_support",
       "Autre (précisez)": "ask_user_input",
     },
   },
@@ -52,38 +54,36 @@ const diagnosisTree = {
       "Autre (précisez)": "ask_user_input",
     },
   },
+  breastfeeding_support: {
+    question: "Avez-vous des questions spécifiques sur l’allaitement ?",
+    options: ["Douleur lors de l'allaitement", "Quantité de lait insuffisante", "Position d'allaitement", "Sevrage", "Autre (précisez)"],
+    next: {
+      "Douleur lors de l'allaitement": "breastfeeding_pain",
+      "Quantité de lait insuffisante": "low_milk_supply",
+      "Position d'allaitement": "breastfeeding_positions",
+      "Sevrage": "weaning_info",
+      "Autre (précisez)": "ask_user_input",
+    },
+  },
   ask_user_input: {
     question: "Pouvez-vous préciser votre situation en quelques mots ?",
-    options: [],
-    next: {},
+    options: ["Retour"],
   },
 };
 
 // Fonction pour obtenir l'étape suivante
 function getNextDiagnosisStep(userStage, userChoice) {
   if (!userStage || userStage === "start") {
-    return {
-      nextStage: diagnosisTree.start.next[userChoice] || "ask_user_input",
-      question: diagnosisTree[userStage]?.question || "Pouvez-vous préciser votre problème ?",
-      options: diagnosisTree[userStage]?.options || [],
-    };
+    return diagnosisTree.start;
   }
 
   const currentStep = diagnosisTree[userStage];
 
-  if (currentStep.next && currentStep.next[userChoice]) {
-    return {
-      nextStage: currentStep.next[userChoice],
-      question: diagnosisTree[currentStep.next[userChoice]].question,
-      options: diagnosisTree[currentStep.next[userChoice]].options,
-    };
+  if (currentStep && currentStep.next && currentStep.next[userChoice]) {
+    return diagnosisTree[currentStep.next[userChoice]];
   }
 
-  return {
-    nextStage: "ask_user_input",
-    question: "Merci pour cette précision. Pouvez-vous donner plus de détails ?",
-    options: [],
-  };
+  return diagnosisTree.ask_user_input;
 }
 
-module.exports = { getNextDiagnosisStep };
+module.exports = { diagnosisTree, getNextDiagnosisStep };
