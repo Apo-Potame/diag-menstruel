@@ -16,11 +16,12 @@
     </div>
   </div>
 
-  <script>
+    <script>
     const messagesContainer = document.getElementById("chat-messages");
     const userInput = document.getElementById("user-input");
     const sendButton = document.getElementById("send-button");
     const optionsContainer = document.getElementById("options-container");
+    const sageFemmeImg = document.getElementById("sage-femme-img");
 
     let isBotTurn = false;
     let isTyping = false;
@@ -30,6 +31,23 @@
       userId = crypto.randomUUID();
       localStorage.setItem("userId", userId);
     }
+
+    // Sélection aléatoire d'une sage-femme pour la session utilisateur
+    let sageFemme = localStorage.getItem("sageFemme");
+    if (!sageFemme) {
+      const sagesFemmes = [
+        { name: "Anne", img: "https://cdn.shopify.com/s/files/1/0045/2244/2786/files/sage-femme-anne-web.png?v=1738228119" },
+        { name: "Louisa", img: "https://cdn.shopify.com/s/files/1/0045/2244/2786/files/sage-femme-louisa-web.png?v=1738228119" }
+      ];
+      const randomIndex = Math.floor(Math.random() * sagesFemmes.length);
+      sageFemme = JSON.stringify(sagesFemmes[randomIndex]);
+      localStorage.setItem("sageFemme", sageFemme);
+    }
+    
+    // Appliquer la photo de la sage-femme choisie
+    sageFemme = JSON.parse(sageFemme);
+    sageFemmeImg.src = sageFemme.img;
+    sageFemmeImg.alt = `Sage-femme virtuelle ${sageFemme.name}`;
 
     function updateInputState() {
       const isDisabled = isBotTurn || isTyping || optionsContainer.childElementCount > 0;
@@ -59,7 +77,7 @@
         button.classList.add("option-button");
         button.textContent = option;
         button.addEventListener("click", () => {
-          optionsContainer.innerHTML = ""; 
+          optionsContainer.innerHTML = "";
           sendMessage(option);
         });
         optionsContainer.appendChild(button);
@@ -117,7 +135,7 @@
     }
 
     window.onload = () => {
-      displayMessage("Bonjour ! Je suis votre sage-femme virtuelle. Comment puis-je vous aider ?", "bot");
+      displayMessage(`Bonjour ! Je suis ${sageFemme.name}, votre sage-femme virtuelle. Comment puis-je vous aider ?`, "bot");
       displayOptions(["Règles douloureuses", "Flux abondant", "Absence de règles", "Grossesse", "Autre souci gynécologique"]);
       enableUserInput();
     };
@@ -130,6 +148,7 @@
       }
     });
   </script>
+
 
     <div id="sage-femme-container">
     <img id="sage-femme-img" src="" alt="Votre sage-femme virtuelle">
