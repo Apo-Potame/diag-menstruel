@@ -7,18 +7,17 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="chat-container">
-  <div id="chat-messages">
-    <img id="sage-femme-img" src="" alt="Votre sage-femme virtuelle">
+  <div id="chat-container">
+    <div id="chat-messages">
+      <img id="sage-femme-img" src="" alt="Votre sage-femme virtuelle">
+    </div>
+    <div id="options-container"></div>
+    <div id="chat-input">
+      <textarea id="user-input" placeholder="Une question de santé féminine ?" disabled></textarea>
+      <button id="send-button" disabled>Envoyer</button>
+    </div>
   </div>
-  <div id="options-container"></div>
-  <div id="chat-input">
-    <textarea id="user-input" placeholder="Une question de santé féminine ?" disabled></textarea>
-    <button id="send-button" disabled>Envoyer</button>
-  </div>
-</div>
 
-  
   <script>
     const messagesContainer = document.getElementById("chat-messages");
     const userInput = document.getElementById("user-input");
@@ -26,36 +25,28 @@
     const optionsContainer = document.getElementById("options-container");
     const sageFemmeImg = document.getElementById("sage-femme-img");
 
-
-
-    let isBotTurn = false;
-    let isTyping = false;
-
     let userId = localStorage.getItem("userId");
     if (!userId) {
       userId = crypto.randomUUID();
       localStorage.setItem("userId", userId);
     }
 
-    // Sélection aléatoire d'une sage-femme pour la session utilisateur
     let sageFemme = localStorage.getItem("sageFemme");
     if (!sageFemme) {
       const sagesFemmes = [
         { name: "Anne", img: "https://cdn.shopify.com/s/files/1/0045/2244/2786/files/sage-femme-anne-web.png?v=1738228119" },
         { name: "Louisa", img: "https://cdn.shopify.com/s/files/1/0045/2244/2786/files/sage-femme-louisa-web.png?v=1738228119" }
       ];
-      const randomIndex = Math.floor(Math.random() * sagesFemmes.length);
-      sageFemme = JSON.stringify(sagesFemmes[randomIndex]);
+      sageFemme = JSON.stringify(sagesFemmes[Math.floor(Math.random() * sagesFemmes.length)]);
       localStorage.setItem("sageFemme", sageFemme);
     }
 
-    // Appliquer la photo de la sage-femme choisie
     sageFemme = JSON.parse(sageFemme);
     sageFemmeImg.src = sageFemme.img;
     sageFemmeImg.alt = `Sage-femme virtuelle ${sageFemme.name}`;
 
     function updateInputState() {
-      const isDisabled = isBotTurn || isTyping || optionsContainer.childElementCount > 0;
+      const isDisabled = optionsContainer.childElementCount > 0;
       userInput.disabled = isDisabled;
       sendButton.disabled = isDisabled || userInput.value.trim() === "";
     }
@@ -65,14 +56,9 @@
     function displayMessage(message, sender, isHTML = false) {
       const messageDiv = document.createElement("div");
       messageDiv.classList.add("message", sender);
-      if (isHTML) {
-        messageDiv.innerHTML = message;
-      } else {
-        messageDiv.textContent = message;
-      }
+      messageDiv.innerHTML = isHTML ? message : message.replace(/\n/g, "<br>");
       messagesContainer.appendChild(messageDiv);
       messagesContainer.scrollTop = messagesContainer.scrollHeight;
-      return messageDiv;
     }
 
     function displayOptions(options) {
@@ -82,7 +68,6 @@
         button.classList.add("option-button");
         button.textContent = option;
         button.addEventListener("click", () => {
-          optionsContainer.innerHTML = "";
           sendMessage(option);
         });
         optionsContainer.appendChild(button);
@@ -90,13 +75,14 @@
       updateInputState();
     }
 
-    async function sendMessage(userMessage = userInput.value.trim()) {
-      if (isBotTurn || isTyping || !userMessage) return;
+    async function sendMessage(userMessage) {
+      if (!userMessage) return;
 
       displayMessage(userMessage, "user");
       userInput.value = "";
-      disableUserInput();
-      const waitingMessage = displayMessage("Votre sage-femme réfléchit...", "bot");
+      optionsContainer.innerHTML = "";
+      updateInputState();
+      displayMessage("Votre sage-femme réfléchit...", "bot");
 
       try {
         const response = await fetch("/api/chat", {
@@ -106,53 +92,34 @@
         });
 
         const data = await response.json();
-        messagesContainer.removeChild(waitingMessage);
+        messagesContainer.lastChild.remove();
+        displayMessage(data.reply, "bot", true);
 
-        if (data.reply) {
-          const botMessageDiv = document.createElement("div");
-          botMessageDiv.classList.add("message", "bot");
-          botMessageDiv.innerHTML = data.reply;
-          messagesContainer.appendChild(botMessageDiv);
-        }
-
-        if (data.options) {
+        if (data.options.length > 0) {
           displayOptions(data.options);
         } else {
-          enableUserInput();
+          updateInputState();
         }
 
       } catch (error) {
-        messagesContainer.removeChild(waitingMessage);
+        messagesContainer.lastChild.remove();
         displayMessage("Une erreur est survenue, réessayez plus tard.", "bot");
-        console.error("Erreur côté frontend :", error);
-        enableUserInput();
+        console.error("Erreur frontend :", error);
       }
-    }
-
-    function disableUserInput() {
-      isBotTurn = true;
-      updateInputState();
-    }
-
-    function enableUserInput() {
-      isBotTurn = false;
-      updateInputState();
     }
 
     window.onload = () => {
       displayMessage(`Bonjour ! Je suis ${sageFemme.name}, votre sage-femme virtuelle. Comment puis-je vous aider ?`, "bot");
-      displayOptions(["Règles douloureuses", "Flux abondant", "Absence de règles", "Grossesse", "Autre souci gynécologique"]);
-      enableUserInput();
+      displayOptions(["Règles douloureuses", "Flux abondant", "Absence de règles", "Grossesse et postpartum", "Autre souci gynécologique", "Autre (précisez)"]);
     };
 
-    sendButton.addEventListener("click", () => sendMessage());
+    sendButton.addEventListener("click", () => sendMessage(userInput.value.trim()));
     userInput.addEventListener("keypress", (e) => {
       if (e.key === "Enter" && !sendButton.disabled) {
         e.preventDefault();
-        sendMessage();
+        sendMessage(userInput.value.trim());
       }
     });
   </script>
-
 </body>
 </html>
