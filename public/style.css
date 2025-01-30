@@ -38,9 +38,9 @@ body {
 /* ✅ Image de la sage-femme bien placée */
 #sage-femme-img {
   position: absolute;
-  bottom: 10px;
-  right: 10px;
-  width: 120px; /* Ajustable */
+  bottom: 0px;
+  right: 0px;
+  width: 150px; /* Ajustable */
   height: auto;
   background-color: white; /* Évite qu'elle masque du texte */
   border-radius: 8px;
