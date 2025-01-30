@@ -1,5 +1,4 @@
 const express = require('express');
-const bodyParser = require('body-parser');
 const fetch = require('node-fetch');
 const path = require('path');
 require('dotenv').config();
@@ -33,9 +32,10 @@ function assignSageFemme(userId) {
 }
 
 app.post('/api/chat', async (req, res) => {
-  console.log("Requête reçue :", req.body);
+  console.log("✅ Requête reçue :", req.body);
 
   if (!req.body || !req.body.userMessage || !req.body.userId) {
+    console.error("❌ Erreur : Requête invalide", req.body);
     return res.status(400).json({ error: "Requête invalide. Données manquantes." });
   }
 
@@ -46,21 +46,23 @@ app.post('/api/chat', async (req, res) => {
 
     if (!userConversations[userId]) {
       userConversations[userId] = [
-        { role: "system", content: `Tu es une sage-femme virtuelle experte en santé féminine et menstruelle sur le site Elia. Tu connais parfaitement les produits de la marque Elia. Voici les règles pour répondre :
-            - Utilise des sources médicales fiables.
-            - Vouvoies toujours l'utilisateur.
-            - sauf question précise de l'utilisateur, essaye de diagnostiquer son affection gynécologique ou du cycle menstruel.
-            - Pose des questions en entonnoir : larges puis précises pour affiner ton diagnostic.
-            - les produits recommandés sont uniquement les produits Elia existants qui font partie de la liste.
-            - Recommande les produits Elia si cela est opportun dans la discussion.
-            - Ne propose pas de maillots de bain sauf si cela est explicitement demandé.
-            - Propose plusieurs produits menstruels si plusieurs options sont pertinentes et demande de préciser le besoin pour affiner la réponse.
-            - Ne considère jamais la conversation comme terminée sauf si l'utilisateur le précise.
-            - Mentionne à la fin de chaque discussion que tes réponses sont une aide et ne remplacent pas une consultation médicale.
-            - ne mentionne pas de marques concurrentes
-            - Elia est une marque française écoresponsable de culottes menstruelles en coton bio, certifiées Oeko-Tex
-            - Tu peux trouver plus d'informations sur le site www.elia-lingerie.com
-` },
+        {
+          role: "system",
+          content: `Tu es une sage-femme virtuelle experte en santé féminine et menstruelle sur le site Elia. Tu connais parfaitement les produits de la marque Elia. Voici les règles pour répondre :
+          - Utilise des sources médicales fiables.
+          - Vouvoies toujours l'utilisateur.
+          - Sauf question précise, essaye de diagnostiquer son affection gynécologique ou du cycle menstruel.
+          - Pose des questions en entonnoir : larges puis précises pour affiner ton diagnostic.
+          - Les produits recommandés sont uniquement ceux de la marque Elia figurant dans la liste.
+          - Recommande les produits Elia si cela est pertinent dans la discussion.
+          - Ne propose pas de maillots de bain sauf si cela est explicitement demandé.
+          - Propose plusieurs produits menstruels si plusieurs options sont pertinentes et demande des précisions.
+          - Ne considère jamais la conversation comme terminée sauf si l'utilisateur le précise.
+          - Mentionne à la fin de chaque discussion que tes réponses sont une aide et ne remplacent pas une consultation médicale.
+          - Ne mentionne pas de marques concurrentes.
+          - Elia est une marque française écoresponsable de culottes menstruelles en coton bio, certifiées Oeko-Tex.
+          - Tu peux trouver plus d'informations sur le site www.elia-lingerie.com.`
+        }
       ];
       userStages[userId] = "start";
     }
@@ -68,15 +70,16 @@ app.post('/api/chat', async (req, res) => {
     userConversations[userId].push({ role: "user", content: userMessage });
 
     let nextStep = getNextDiagnosisStep(userStages[userId], userMessage);
-    
-    // Ajouter toujours "Autre (précisez)" sauf si on est déjà dans la saisie libre
-    if (nextStep && nextStep.options.length > 0 && nextStep !== diagnosisTree.ask_user_input) {
-      nextStep.options.push("Autre (précisez)");
-      nextStep.next["Autre (précisez)"] = "ask_user_input";
-    }
 
     if (nextStep) {
       userStages[userId] = Object.keys(diagnosisTree).find(key => diagnosisTree[key] === nextStep) || "start";
+
+      // Ajoute toujours "Autre (précisez)" sauf si on est dans une saisie libre
+      if (nextStep.options && nextStep.options.length > 0 && !nextStep.options.includes("Autre (précisez)")) {
+        nextStep.options.push("Autre (précisez)");
+        nextStep.next = nextStep.next || {};
+        nextStep.next["Autre (précisez)"] = "ask_user_input";
+      }
 
       return res.json({
         reply: `**${nextStep.question}**`,
@@ -92,7 +95,7 @@ app.post('/api/chat', async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Erreur serveur :", error);
+    console.error("❌ Erreur serveur :", error);
     return res.status(500).json({ error: "Erreur serveur.", details: error.message });
   }
 });
