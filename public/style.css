@@ -144,17 +144,17 @@ body {
 
 #sage-femme-container {
   position: absolute;
-  bottom: 80px; /* Juste au-dessus du champ d'entrée */
-  right: 20px; /* Collé à droite du chat */
-  z-index: 10; /* S'assurer qu'elle est bien au-dessus du texte */
-  width: 60px; /* Taille de l'image */
+  bottom: 10px; /* Positionné au fond du conteneur */
+  right: 10px; /* Aligné à droite */
+  z-index: 5;
+  width: 100px; /* Augmenté */
   height: auto;
 }
 
 #sage-femme-img {
   width: 100%;
   height: auto;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
+
 
 
