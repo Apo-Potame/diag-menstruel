@@ -9,7 +9,7 @@ const PORT = process.env.PORT || 3000;
 
 // Middleware pour servir les fichiers statiques
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(express.json()); // Ajout pour assurer le bon traitement de req.body
+app.use(express.json());
 
 // Stocker les conversations, l'état du diagnostic et la sage-femme assignée
 const userConversations = {};
@@ -79,7 +79,7 @@ async function fetchShopifyProducts() {
       );
     }
 
-    nextPageUrl = null; // Pas de pagination pour simplifier
+    nextPageUrl = null;
   }
 
   return products;
@@ -89,28 +89,26 @@ async function fetchShopifyProducts() {
 const diagnosisTree = {
   start: {
     question: "Quel est votre principal souci ?",
-    options: ["Règles douloureuses", "Flux abondant", "Absence de règles", "Grossesse", "Autre"],
+    options: ["Règles douloureuses", "Flux abondant", "Absence de règles", "Grossesse", "Autre souci gynécologique"],
     next: {
       "Règles douloureuses": "pain",
       "Flux abondant": "heavy_flow",
       "Absence de règles": "no_period",
       "Grossesse": "pregnancy",
-      "Autre": "other_issue",
+      "Autre souci gynécologique": "other_issue",
     },
+  },
+  pain: {
+    question: "Vos douleurs sont-elles associées à un des cas suivants ?",
+    options: ["Endométriose", "Syndrome prémenstruel", "Douleur inexpliquée", "Autre"],
   },
   heavy_flow: {
-    question: "Quels symptômes avez-vous en plus du flux abondant ?",
-    options: ["Douleurs intenses", "Caillots sanguins", "Fatigue", "Aucun autre symptôme"],
-    next: {
-      "Douleurs intenses": "pain_management",
-      "Caillots sanguins": "coagulation_check",
-      "Fatigue": "anemia_check",
-      "Aucun autre symptôme": "general_advice",
-    },
+    question: "Depuis combien de temps avez-vous un flux abondant ?",
+    options: ["Toujours eu un flux abondant", "Depuis quelques mois", "Depuis un accouchement"],
   },
-  pregnancy: {
-    question: "Souhaitez-vous un calcul de votre stade de grossesse ?",
-    options: ["Oui", "Non"],
+  other_issue: {
+    question: "Pouvez-vous préciser votre problème gynécologique ?",
+    options: ["Douleurs pelviennes", "Saignements anormaux", "Infections fréquentes", "Autre"],
   },
 };
 
@@ -131,7 +129,7 @@ function getNextDiagnosisStep(userId, userChoice) {
 
 // Route pour le chatbot
 app.post('/api/chat', async (req, res) => {
-  console.log("Requête reçue :", req.body); // Debugging pour voir le contenu de la requête
+  console.log("Requête reçue :", req.body);
 
   if (!req.body || !req.body.userMessage || !req.body.userId) {
     console.error("Erreur : Corps de la requête invalide", req.body);
@@ -143,19 +141,9 @@ app.post('/api/chat', async (req, res) => {
   try {
     assignSageFemme(userId);
 
-    // Initialisation de l'historique
     if (!userConversations[userId]) {
       userConversations[userId] = [
-        { role: "system", content: `Tu es une sage-femme virtuelle experte en santé féminine et menstruelle sur le site Elia. Tu connais parfaitement les produits de la marque Elia. Tu es soit Anne, soit Louisa, une sage-femme, et tu restes la même tout au long de la conversation. Voici les règles pour répondre :
-            - Utilise des sources médicales fiables.
-            - Vouvoies toujours l'utilisateur.
-            - Pose des questions en entonnoir : larges puis précises pour affiner ton diagnostic.
-            - Les produits recommandés sont uniquement les produits Elia existants qui font partie du catalogue Shopify.
-            - Ne propose pas de maillots de bain sauf si cela est explicitement demandé.
-            - Mentionne que tes réponses sont une aide et ne remplacent pas une consultation médicale.
-            - Ne mentionne pas de marques concurrentes.
-            - Elia est une marque française écoresponsable de culottes menstruelles en coton bio, certifiées Oeko-Tex.
-            - Plus d'infos sur www.elia-lingerie.com.` },
+        { role: "system", content: `Tu es une sage-femme virtuelle experte en santé féminine. Tu es soit Anne, soit Louisa, et restes la même tout au long de la conversation.` },
       ];
       userStages[userId] = "start";
     }
@@ -185,7 +173,7 @@ app.post('/api/chat', async (req, res) => {
         .join("<br>");
     }
 
-    const reply = productResponse || "Je ne suis pas sûre de bien comprendre, pouvez-vous préciser ?";
+    const reply = productResponse || "Je vais essayer de mieux comprendre. Pouvez-vous préciser votre problème ?";
 
     userConversations[userId].push({ role: "assistant", content: reply });
 
