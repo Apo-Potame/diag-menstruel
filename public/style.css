@@ -1,148 +1,30 @@
 body {
-      font-family: Arial, sans-serif;
-      background-color: #efe9de;
-      margin: 0;
-      padding: 0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      overflow: hidden;
-    }
+  font-family: Arial, sans-serif;
+  background-color: #efe9de;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  overflow: hidden;
+}
 
-    #chat-container {
-      width: 400px;
-      max-width: 90%;
-      height: 600px;
-      border: 2px solid #000;
-      border-radius: 8px;
-      background-color: #fff;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-
-    #chat-messages {
-      flex: 1;
-      overflow-y: auto;
-      padding: 16px;
-      border-bottom: 2px solid #000;
-      background-color: #fff;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .message {
-      margin-bottom: 12px;
-      padding: 8px;
-      border-radius: 8px;
-      display: block;
-      max-width: 80%;
-      white-space: pre-wrap;
-    }
-
-    .message.user {
-      background-color: #000;
-      color: #fff;
-      align-self: flex-end;
-    }
-
-    .message.bot {
-      background-color: #efe9de;
-      color: #000;
-      align-self: flex-start;
-    }
-
-    .message.waiting {
-      font-style: italic;
-      color: #888;
-    }
-
-    #chat-input {
-      display: flex;
-      padding: 8px;
-      background-color: #fff;
-      border-top: 2px solid #000;
-    }
-
-    #user-input {
-      flex: 1;
-      padding: 8px;
-      border: 2px solid #000;
-      border-radius: 4px;
-      resize: none;
-      overflow-y: auto;
-      line-height: 1.5;
-      font-family: Arial, sans-serif;
-      font-size: 14px;
-      height: 60px;
-      min-height: 60px;
-      max-height: 100px;
-    }
-
-    #user-input::placeholder {
-      color: #aaa;
-      font-style: italic;
-    }
-
-    #send-button {
-      padding: 8px 16px;
-      margin-left: 8px;
-      background-color: #000;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-
-    #send-button:hover {
-      background-color: #444;
-    }
-
-    #send-button:disabled {
-      background-color: #ccc;
-      cursor: not-allowed;
-    }
-
-    #options-container {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      padding: 8px;
-      gap: 8px;
-      background-color: #fff;
-      border-top: 2px solid #000;
-    }
-
-    .option-button {
-      padding: 8px 12px;
-      background-color: #efe9de;
-      color: #000;
-      border: 1px solid #000;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 14px;
-    }
-
-    .option-button:hover {
-      background-color: #d9c8b3;
-    }
-
-    @media (max-width: 768px) {
-      #chat-container {
-        height: 500px;
-      }
-    }
-
-    @media (max-width: 480px) {
-      #chat-container {
-        height: 400px;
-      }
-    }
+#chat-container {
+  width: 400px;
+  max-width: 90%;
+  height: 600px;
+  border: 2px solid #000;
+  border-radius: 8px;
+  background-color: #fff;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
 
 #chat-messages {
-  position: relative; /* Permet de positionner l'image à l'intérieur */
+  position: relative; /* Permet de positionner l’image à l’intérieur */
   flex: 1;
   overflow-y: auto;
   padding: 16px;
@@ -150,12 +32,134 @@ body {
   background-color: #fff;
   display: flex;
   flex-direction: column;
+  padding-bottom: 70px; /* Ajoute un espace pour éviter que l’image ne chevauche les messages */
 }
 
+/* ✅ Image de la sage-femme bien placée */
 #sage-femme-img {
-  position: absolute; /* Fixe l'image en bas à droite de #chat-messages */
+  position: absolute;
   bottom: 10px;
   right: 10px;
-  width: 150px; /* Augmenter si nécessaire */
+  width: 120px; /* Ajustable */
   height: auto;
+  background-color: white; /* Évite qu'elle masque du texte */
+  border-radius: 8px;
+  padding: 4px;
+  z-index: 10; /* Assure qu'elle reste visible */
+  pointer-events: none; /* Empêche les clics accidentels */
+}
+
+.message {
+  margin-bottom: 12px;
+  padding: 8px;
+  border-radius: 8px;
+  display: block;
+  max-width: 80%;
+  white-space: pre-wrap;
+}
+
+.message.user {
+  background-color: #000;
+  color: #fff;
+  align-self: flex-end;
+}
+
+.message.bot {
+  background-color: #efe9de;
+  color: #000;
+  align-self: flex-start;
+}
+
+.message.waiting {
+  font-style: italic;
+  color: #888;
+}
+
+#chat-input {
+  display: flex;
+  padding: 8px;
+  background-color: #fff;
+  border-top: 2px solid #000;
+}
+
+#user-input {
+  flex: 1;
+  padding: 8px;
+  border: 2px solid #000;
+  border-radius: 4px;
+  resize: none;
+  overflow-y: auto;
+  line-height: 1.5;
+  font-family: Arial, sans-serif;
+  font-size: 14px;
+  height: 60px;
+  min-height: 60px;
+  max-height: 100px;
+}
+
+#user-input::placeholder {
+  color: #aaa;
+  font-style: italic;
+}
+
+#send-button {
+  padding: 8px 16px;
+  margin-left: 8px;
+  background-color: #000;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+#send-button:hover {
+  background-color: #444;
+}
+
+#send-button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+#options-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  padding: 8px;
+  gap: 8px;
+  background-color: #fff;
+  border-top: 2px solid #000;
+}
+
+.option-button {
+  padding: 8px 12px;
+  background-color: #efe9de;
+  color: #000;
+  border: 1px solid #000;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.option-button:hover {
+  background-color: #d9c8b3;
+}
+
+/* ✅ Responsive Design */
+@media (max-width: 768px) {
+  #chat-container {
+    height: 500px;
+  }
+  #sage-femme-img {
+    width: 100px; /* Réduction sur petits écrans */
+  }
+}
+
+@media (max-width: 480px) {
+  #chat-container {
+    height: 400px;
+  }
+  #sage-femme-img {
+    width: 90px;
+  }
 }
