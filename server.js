@@ -1,23 +1,39 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const fetch = require('node-fetch');
+const path = require('path');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Stocker les conversations et l'état du diagnostic
+// Servir les fichiers statiques depuis le dossier "public"
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Stocker les conversations, l'état du diagnostic et la sage-femme assignée
 const userConversations = {};
 const userStages = {};
+const userSageFemme = {};
 const MAX_HISTORY_LENGTH = 20;
 
-// Middleware pour traiter les requêtes JSON et ajouter des headers CORS
-app.use(bodyParser.json());
-app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
-  next();
-});
+// URLs des images des sage-femmes
+const sageFemmeImages = {
+  Anne: "https://cdn.shopify.com/s/files/1/0045/2244/2786/files/sage-femme-anne-web.png?v=1738228119",
+  Louisa: "https://cdn.shopify.com/s/files/1/0045/2244/2786/files/sage-femme-louisa-web.png?v=1738228119",
+};
+
+// Fonction pour attribuer une sage-femme aléatoire
+function assignSageFemme(userId) {
+  if (!userSageFemme[userId]) {
+    const sageFemmes = Object.keys(sageFemmeImages);
+    const randomSageFemme = sageFemmes[Math.floor(Math.random() * sageFemmes.length)];
+    userSageFemme[userId] = {
+      name: randomSageFemme,
+      imageUrl: sageFemmeImages[randomSageFemme],
+    };
+  }
+  return userSageFemme[userId];
+}
 
 // Fonction pour récupérer la date du jour
 function getCurrentDate() {
@@ -57,7 +73,7 @@ async function fetchShopifyProducts() {
           .map(p => ({
             name: p.title,
             description: p.body_html.replace(/<[^>]*>/g, '').slice(0, 300),
-            url: `https://${SHOPIFY_STORE_URL}/products/${p.handle}`
+            url: `https://${SHOPIFY_STORE_URL}/products/${p.handle}`,
           }))
       );
     }
@@ -115,23 +131,21 @@ app.post('/api/chat', async (req, res) => {
   }
 
   try {
+    assignSageFemme(userId);
+
     // Initialisation de l'historique
     if (!userConversations[userId]) {
       userConversations[userId] = [
-        { role: "system", content: `Tu es une sage-femme virtuelle experte en santé féminine et menstruelle sur le site Elia. Tu connais parfaitement les produits de la marque Elia. Voici les règles pour répondre :
+        { role: "system", content: `Tu es une sage-femme virtuelle experte en santé féminine et menstruelle sur le site Elia. Tu connais parfaitement les produits de la marque Elia. Tu es soit Anne, soit Louisa, une sage-femme, et tu restes la même tout au long de la conversation. Voici les règles pour répondre :
             - Utilise des sources médicales fiables.
             - Vouvoies toujours l'utilisateur.
-            - sauf question précise de l'utilisateur, essaye de diagnostiquer son affection gynécologique ou du cycle menstruel.
             - Pose des questions en entonnoir : larges puis précises pour affiner ton diagnostic.
-            - les produits recommandés sont uniquement les produits Elia existants qui font partie de la liste.
-            - Recommande les produits Elia si cela est opportun dans la discussion.
+            - Les produits recommandés sont uniquement les produits Elia existants qui font partie du catalogue Shopify.
             - Ne propose pas de maillots de bain sauf si cela est explicitement demandé.
-            - Propose plusieurs produits menstruels si plusieurs options sont pertinentes et demande de préciser le besoin pour affiner la réponse.
-            - Ne considère jamais la conversation comme terminée sauf si l'utilisateur le précise.
-            - Mentionne à la fin de chaque discussion que tes réponses sont une aide et ne remplacent pas une consultation médicale.
-            - ne mentionne pas de marques concurrentes
-            - Elia est une marque française écoresponsable de culottes menstruelles en coton bio, certifiées Oeko-Tex
-            - Tu peux trouver plus d'informations sur le site www.elia-lingerie.com` }
+            - Mentionne que tes réponses sont une aide et ne remplacent pas une consultation médicale.
+            - Ne mentionne pas de marques concurrentes.
+            - Elia est une marque française écoresponsable de culottes menstruelles en coton bio, certifiées Oeko-Tex.
+            - Plus d'infos sur www.elia-lingerie.com.` },
       ];
       userStages[userId] = "start";
     }
@@ -141,7 +155,11 @@ app.post('/api/chat', async (req, res) => {
     // Vérification du diagnostic
     const nextStep = getNextDiagnosisStep(userId, userMessage);
     if (nextStep) {
-      return res.json({ reply: `**${nextStep.question}**`, options: nextStep.options });
+      return res.json({
+        reply: `**${nextStep.question}**`,
+        options: nextStep.options,
+        sageFemme: userSageFemme[userId],
+      });
     }
 
     // Recherche des produits Elia
@@ -161,7 +179,7 @@ app.post('/api/chat', async (req, res) => {
 
     userConversations[userId].push({ role: "assistant", content: reply });
 
-    return res.json({ reply });
+    return res.json({ reply, sageFemme: userSageFemme[userId] });
   } catch (error) {
     return res.status(500).json({ error: "Erreur serveur.", details: error.message });
   }
