@@ -4,19 +4,25 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Chat Sage-Femme Virtuelle</title>
-    <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div id="chat-container">
     <div id="chat-messages"></div>
     <div id="options-container"></div> <!-- Conteneur des options cliquables -->
+    
+    <!-- Conteneur pour la sage-femme -->
+    <div id="sage-femme-container">
+      <img id="sage-femme-img" src="" alt="Votre sage-femme virtuelle">
+    </div>
+
     <div id="chat-input">
       <textarea id="user-input" placeholder="Une question de santé féminine ?" disabled></textarea>
       <button id="send-button" disabled>Envoyer</button>
     </div>
   </div>
 
-    <script>
+  <script>
     const messagesContainer = document.getElementById("chat-messages");
     const userInput = document.getElementById("user-input");
     const sendButton = document.getElementById("send-button");
@@ -43,7 +49,7 @@
       sageFemme = JSON.stringify(sagesFemmes[randomIndex]);
       localStorage.setItem("sageFemme", sageFemme);
     }
-    
+
     // Appliquer la photo de la sage-femme choisie
     sageFemme = JSON.parse(sageFemme);
     sageFemmeImg.src = sageFemme.img;
@@ -149,10 +155,5 @@
     });
   </script>
 
-
-    <div id="sage-femme-container">
-    <img id="sage-femme-img" src="" alt="Votre sage-femme virtuelle">
-  </div>
-  
 </body>
 </html>
