@@ -147,7 +147,7 @@ body {
   bottom: 10px; /* Positionné au fond du conteneur */
   right: 10px; /* Aligné à droite */
   z-index: 5;
-  width: 100px; /* Augmenté */
+  width: 200px; /* Augmenté */
   height: auto;
 }
 
