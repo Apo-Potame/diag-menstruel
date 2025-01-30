@@ -36,7 +36,7 @@ function assignSageFemme(userId) {
   return userSageFemme[userId];
 }
 
-// Arbre de diagnostic dynamique
+// Arbre de diagnostic interactif
 const diagnosisTree = {
   start: {
     question: "Quel est votre principal souci ?",
@@ -59,23 +59,13 @@ const diagnosisTree = {
       "Autre (précisez)": "ask_user_input",
     },
   },
-  heavy_flow: {
-    question: "Depuis combien de temps avez-vous un flux abondant ?",
-    options: ["Toujours eu un flux abondant", "Depuis quelques mois", "Depuis un accouchement", "Autre (précisez)"],
+  pregnancy: {
+    question: "Avez-vous des préoccupations spécifiques concernant votre grossesse ?",
+    options: ["Calcul de la date d'accouchement", "Suivi médical", "Symptômes inhabituels", "Autre (précisez)"],
     next: {
-      "Toujours eu un flux abondant": "flux_long_term",
-      "Depuis quelques mois": "flux_recent",
-      "Depuis un accouchement": "flux_postpartum",
-      "Autre (précisez)": "ask_user_input",
-    },
-  },
-  other_issue: {
-    question: "Pouvez-vous préciser votre problème gynécologique ?",
-    options: ["Douleurs pelviennes", "Saignements anormaux", "Infections fréquentes", "Autre (précisez)"],
-    next: {
-      "Douleurs pelviennes": "pelvic_pain_info",
-      "Saignements anormaux": "bleeding_info",
-      "Infections fréquentes": "infection_info",
+      "Calcul de la date d'accouchement": "due_date",
+      "Suivi médical": "pregnancy_followup",
+      "Symptômes inhabituels": "pregnancy_symptoms",
       "Autre (précisez)": "ask_user_input",
     },
   },
@@ -129,23 +119,24 @@ app.post('/api/chat', async (req, res) => {
     if (nextStep) {
       return res.json({
         reply: `**${nextStep.question}**`,
-        options: nextStep.options,
+        options: nextStep.options.length > 0 ? nextStep.options : ["Retour"],
         sageFemme,
       });
     }
 
     // Gestion de la saisie utilisateur après "Autre (précisez)"
     if (userStages[userId] === "ask_user_input") {
+      userStages[userId] = "start"; // Réinitialisation de l'état
       return res.json({
         reply: "Merci pour cette précision. Pouvez-vous me donner plus de détails ?",
-        options: [],
+        options: ["Retour"],
         sageFemme,
       });
     }
 
     return res.json({
       reply: "Je vais essayer de mieux comprendre. Pouvez-vous préciser votre problème ?",
-      options: [],
+      options: ["Retour"],
       sageFemme,
     });
 
