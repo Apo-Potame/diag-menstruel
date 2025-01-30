@@ -63,26 +63,26 @@ app.post('/api/chat', async (req, res) => {
 
   userConversations[userId].push({ role: "user", content: userMessage });
 
-  // 📌 Gestion spécifique du mode "Autre (précisez)"
+  // 📌 Si l'utilisateur est en mode texte libre après "Autre (précisez)"
   if (userStages[userId] === "ask_user_input") {
-    userStages[userId] = "start"; // Retour à l'arbre de diagnostic après saisie libre
+    userStages[userId] = "start"; // Retour normal dans l'arbre après la réponse
     return res.json({
-      reply: `Merci pour cette précision. Pouvez-vous me donner plus de détails ?`,
+      reply: `Merci pour votre précision. Pouvez-vous me donner plus de détails ?`,
       options: ["Retour"],
       sageFemme,
     });
   }
 
-  // 📌 Récupération de la prochaine étape du diagnostic
+  // 📌 Vérifier que l'on avance bien dans l'arbre interactif
   let nextStep = getNextDiagnosisStep(userStages[userId], userMessage);
 
   if (nextStep) {
     console.log(`🔄 Étape suivante : ${userStages[userId]} ➡️ ${nextStep.question}`);
 
-    // 🟢 Mise à jour du statut utilisateur pour avancer
+    // **🔹 Fix : Mise à jour correcte de l'étape actuelle**
     userStages[userId] = Object.keys(diagnosisTree).find(key => diagnosisTree[key] === nextStep) || "start";
 
-    // 📌 Ajout de "Autre (précisez)" sauf si on est déjà dans un champ libre
+    // 📌 Ajout de "Autre (précisez)" sauf si on est déjà en mode texte libre
     if (nextStep.options && nextStep.options.length > 0 && nextStep !== diagnosisTree.ask_user_input) {
       if (!nextStep.options.includes("Autre (précisez)")) {
         nextStep.options.push("Autre (précisez)");
@@ -98,7 +98,7 @@ app.post('/api/chat', async (req, res) => {
     });
   }
 
-  // 📌 Si aucune étape suivante, proposer une reformulation
+  // **🔹 Fix : Correction du message final si aucune étape suivante**
   return res.json({
     reply: "Je vais essayer de mieux comprendre. Pouvez-vous préciser votre problème ?",
     options: ["Retour", "Autre (précisez)"],
