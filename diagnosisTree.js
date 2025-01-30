@@ -3,7 +3,7 @@
 const diagnosisTree = {
   start: {
     question: "Quel est votre principal souci ?",
-    options: ["Règles douloureuses", "Flux abondant", "Absence de règles", "Grossesse et postpartum", "Autre souci gynécologique", "Autre (précisez)"],
+    options: ["Règles douloureuses", "Flux abondant", "Absence de règles", "Grossesse et post-partum", "Autre souci gynécologique", "Autre (précisez)"],
     next: {
       "Règles douloureuses": "pain",
       "Flux abondant": "heavy_flow",
