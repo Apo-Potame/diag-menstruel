@@ -32,6 +32,36 @@ function assignSageFemme(userId) {
   return userSageFemme[userId];
 }
 
+// 📌 Fonction d'association plus intelligente
+function findMatchingStep(userInput) {
+  const cleanedInput = userInput.toLowerCase().trim();
+
+  const keywords = {
+    "règles douloureuses": "pain",
+    "douleurs menstruelles": "pain",
+    "flux abondant": "heavy_flow",
+    "règles abondantes": "heavy_flow",
+    "absence de règles": "no_period",
+    "retard de règles": "no_period",
+    "grossesse": "pregnancy",
+    "enceinte": "pregnancy",
+    "post-partum": "pregnancy",
+    "allaitement": "breastfeeding",
+    "autre souci gynécologique": "other_issue",
+    "douleurs pelviennes": "pelvic_pain",
+    "saignements anormaux": "abnormal_bleeding",
+    "infections fréquentes": "recurring_infections"
+  };
+
+  for (let key in keywords) {
+    if (cleanedInput.includes(key)) {
+      return keywords[key];
+    }
+  }
+
+  return null;
+}
+
 app.post("/api/chat", async (req, res) => {
   console.log("\n✅ [DEBUG] Nouvelle requête reçue :", req.body);
 
@@ -56,27 +86,19 @@ app.post("/api/chat", async (req, res) => {
   // 📌 Vérifier l'étape suivante dans l'arbre interactif
   let nextStepKey = getNextDiagnosisStep(userStages[userId], userMessage);
 
-  // **Correction : Vérifier que `nextStepKey` est bien défini et correspond à une clé valide**
+  // **🔍 Correction : Si `nextStepKey` est invalide, on tente une correspondance plus intelligente**
   if (!nextStepKey || !diagnosisTree[nextStepKey]) {
     console.log("⚠️ [DEBUG] Étape suivante non trouvée, tentative de correspondance alternative...");
+    nextStepKey = findMatchingStep(userMessage);
+  }
 
-    // 🔎 Vérifier si l'input de l'utilisateur correspond à une option dans l'arbre
-    const lowerMessage = userMessage.toLowerCase();
-    for (let key in diagnosisTree) {
-      if (diagnosisTree[key].options && diagnosisTree[key].options.some(opt => opt.toLowerCase() === lowerMessage)) {
-        nextStepKey = key;
-        break;
-      }
-    }
-
-    if (!nextStepKey || !diagnosisTree[nextStepKey]) {
-      console.log("⛔ [DEBUG] Aucune correspondance trouvée, retour à une question générale.");
-      return res.json({
-        reply: "Je ne suis pas sûre de comprendre, pouvez-vous reformuler ?",
-        options: ["Retour", "Autre (précisez)"],
-        sageFemme,
-      });
-    }
+  if (!nextStepKey || !diagnosisTree[nextStepKey]) {
+    console.log("⛔ [DEBUG] Aucune correspondance trouvée, retour à une question générale.");
+    return res.json({
+      reply: "Je ne suis pas sûre de comprendre, pouvez-vous reformuler ?",
+      options: ["Retour", "Autre (précisez)"],
+      sageFemme,
+    });
   }
 
   console.log(`🔍 [DEBUG] Étape suivante trouvée : ${nextStepKey}`);
