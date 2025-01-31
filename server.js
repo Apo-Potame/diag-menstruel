@@ -78,24 +78,30 @@ app.post("/api/chat", async (req, res) => {
   // 📌 **Fix : Vérification stricte des options**
   let nextStep = getNextDiagnosisStep(userStages[userId], userMessage);
 
+  // **Correction : Vérification stricte si la réponse correspond à une option existante**
   if (!nextStep) {
     console.log("⚠️ Aucun match dans l'arbre, recherche d'une correspondance...");
-    
-    // Vérifier si la réponse correspond à une option existante
+
     const lowerMessage = userMessage.toLowerCase();
+    let foundKey = null;
+
     for (let key in diagnosisTree) {
       if (diagnosisTree[key].options && diagnosisTree[key].options.some(opt => opt.toLowerCase() === lowerMessage)) {
-        nextStep = diagnosisTree[key];
-        userStages[userId] = key;
+        foundKey = key;
         break;
       }
     }
+
+    if (foundKey) {
+      nextStep = diagnosisTree[foundKey];
+      userStages[userId] = foundKey;
+    }
   }
 
+  // 📌 Correction : Assurer que userStages[userId] est bien mis à jour
   if (nextStep) {
     console.log(`🔹 Passage à l'étape suivante : ${nextStep.question}`);
 
-    // **Fix : Mise à jour correcte de userStages**
     userStages[userId] = Object.keys(diagnosisTree).find(key => diagnosisTree[key] === nextStep) || "start";
 
     // 📌 **Ajout de "Autre (précisez)" sauf si déjà en mode texte libre**
@@ -114,7 +120,7 @@ app.post("/api/chat", async (req, res) => {
     });
   }
 
-  // 📌 **Fix : Si toujours aucune correspondance, inciter à reformuler**
+  // 📌 Correction : Si toujours aucune correspondance, inciter à reformuler
   console.log("⚠️ Aucun diagnostic trouvé, inciter à préciser...");
   return res.json({
     reply: "Je vais essayer de mieux comprendre. Pouvez-vous préciser votre problème ?",
