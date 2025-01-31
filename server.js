@@ -63,9 +63,11 @@ app.post("/api/chat", async (req, res) => {
 
   userConversations[userId].push({ role: "user", content: userMessage });
 
-  // 📌 Si l'utilisateur est en mode texte libre après "Autre (précisez)"
+  console.log(`🔄 État actuel de l'utilisateur (${userId}) : ${userStages[userId]}`);
+
+  // 📌 Mode "Autre (précisez)" - Accepter une entrée libre
   if (userStages[userId] === "ask_user_input") {
-    userStages[userId] = "start"; // Retour normal dans l'arbre après la réponse
+    userStages[userId] = "start"; // Retour normal après la saisie
     return res.json({
       reply: `Merci pour votre précision. Pouvez-vous me donner plus de détails ?`,
       options: ["Retour"],
@@ -73,16 +75,16 @@ app.post("/api/chat", async (req, res) => {
     });
   }
 
-  // 📌 Vérifier que l'on avance bien dans l'arbre interactif
-  let nextStep = getNextDiagnosisStep(userStages[userId], userMessage);
+  // 📌 Avancement dans l'arbre de diagnostic
+  const nextStep = getNextDiagnosisStep(userStages[userId], userMessage);
 
   if (nextStep) {
-    console.log(`🔄 Étape suivante : ${userStages[userId]} ➡️ ${nextStep.question}`);
+    console.log(`🔹 Passage à l'étape suivante : ${nextStep.question}`);
 
-    // **🔹 Fix : Mise à jour correcte de l'étape actuelle**
+    // **Mise à jour correcte de l'étape actuelle**
     userStages[userId] = Object.keys(diagnosisTree).find(key => diagnosisTree[key] === nextStep) || "start";
 
-    // 📌 Ajout de "Autre (précisez)" sauf si on est déjà en mode texte libre
+    // 📌 Ajout de "Autre (précisez)" sauf si déjà en mode texte libre
     if (nextStep.options && nextStep.options.length > 0 && userStages[userId] !== "ask_user_input") {
       if (!nextStep.options.includes("Autre (précisez)")) {
         nextStep.options.push("Autre (précisez)");
@@ -98,7 +100,8 @@ app.post("/api/chat", async (req, res) => {
     });
   }
 
-  // **🔹 Fix : Correction du message final si aucune étape suivante**
+  // 📌 Si aucune correspondance trouvée, inciter à préciser
+  console.log("⚠️ Aucun diagnostic trouvé, demande de précision...");
   return res.json({
     reply: "Je vais essayer de mieux comprendre. Pouvez-vous préciser votre problème ?",
     options: ["Retour", "Autre (précisez)"],
