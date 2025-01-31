@@ -1,13 +1,13 @@
-const express = require('express');
-const fetch = require('node-fetch');
-const path = require('path');
-require('dotenv').config();
-const { diagnosisTree, getNextDiagnosisStep } = require('./diagnosisTree');
+const express = require("express");
+const fetch = require("node-fetch");
+const path = require("path");
+require("dotenv").config();
+const { diagnosisTree, getNextDiagnosisStep } = require("./diagnosisTree");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, "public")));
 app.use(express.json());
 
 const userConversations = {};
@@ -32,7 +32,7 @@ function assignSageFemme(userId) {
   return userSageFemme[userId];
 }
 
-app.post('/api/chat', async (req, res) => {
+app.post("/api/chat", async (req, res) => {
   console.log("✅ Requête reçue :", req.body);
 
   if (!req.body || !req.body.userMessage || !req.body.userId) {
@@ -55,8 +55,8 @@ app.post('/api/chat', async (req, res) => {
         - Recommande les produits Elia si cela est pertinent dans la discussion.
         - Mentionne que tes réponses ne remplacent pas une consultation médicale.
         - Ne mentionne pas de marques concurrentes.
-        - Plus d'informations sur www.elia-lingerie.com.`
-      }
+        - Plus d'informations sur www.elia-lingerie.com.`,
+      },
     ];
     userStages[userId] = "start";
   }
@@ -83,7 +83,7 @@ app.post('/api/chat', async (req, res) => {
     userStages[userId] = Object.keys(diagnosisTree).find(key => diagnosisTree[key] === nextStep) || "start";
 
     // 📌 Ajout de "Autre (précisez)" sauf si on est déjà en mode texte libre
-    if (nextStep.options && nextStep.options.length > 0 && nextStep !== diagnosisTree.ask_user_input) {
+    if (nextStep.options && nextStep.options.length > 0 && userStages[userId] !== "ask_user_input") {
       if (!nextStep.options.includes("Autre (précisez)")) {
         nextStep.options.push("Autre (précisez)");
         nextStep.next = nextStep.next || {};
