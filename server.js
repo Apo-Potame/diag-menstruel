@@ -53,47 +53,35 @@ app.post("/api/chat", async (req, res) => {
   console.log(`🔄 [DEBUG] État actuel de l'utilisateur (${userId}) : ${userStages[userId]}`);
   console.log(`📝 [DEBUG] Message reçu : "${userMessage}"`);
 
-  // 📌 Gestion du mode "Autre (précisez)"
-  if (userStages[userId] === "ask_user_input") {
-    console.log("🟡 [DEBUG] Mode saisie libre activé.");
-    userStages[userId] = "start";
-    return res.json({ reply: "Merci pour votre précision. Pouvez-vous me donner plus de détails ?", options: ["Retour"], sageFemme });
-  }
-
   // 📌 Vérifier l'étape suivante dans l'arbre interactif
-  let nextStep = getNextDiagnosisStep(userStages[userId], userMessage);
+  let nextStepKey = getNextDiagnosisStep(userStages[userId], userMessage);
 
-  if (!nextStep) {
+  if (!nextStepKey) {
     console.log("⚠️ [DEBUG] Aucune correspondance directe, tentative de correspondance alternative...");
 
     // 🔎 Vérifier si l'input de l'utilisateur correspond à une option dans l'arbre
     const lowerMessage = userMessage.toLowerCase();
-    let foundKey = null;
-
     for (let key in diagnosisTree) {
       if (diagnosisTree[key].options && diagnosisTree[key].options.some(opt => opt.toLowerCase() === lowerMessage)) {
-        foundKey = key;
+        nextStepKey = key;
         break;
       }
     }
 
-    if (foundKey) {
-      console.log(`✅ [DEBUG] Correspondance trouvée : ${foundKey}`);
-      nextStep = diagnosisTree[foundKey];
-      userStages[userId] = foundKey; // 🔹 **Mise à jour correcte de l'état**
-    } else {
+    if (!nextStepKey) {
       console.log("⛔ [DEBUG] Aucune correspondance trouvée.");
+      return res.json({ reply: "Je ne suis pas sûre de comprendre, pouvez-vous reformuler ?", options: ["Retour", "Autre (précisez)"], sageFemme });
     }
-  } else {
-    console.log(`🔍 [DEBUG] Étape suivante trouvée : ${nextStep.question}`);
-    userStages[userId] = Object.keys(diagnosisTree).find(key => diagnosisTree[key] === nextStep) || "start";
   }
 
-  // 📌 Vérification que l'état a bien changé
-  console.log(`✅ [DEBUG] Nouvel état de l'utilisateur : ${userStages[userId]}`);
+  // 📌 Mettre à jour l'état utilisateur
+  console.log(`🔍 [DEBUG] Étape suivante trouvée : ${nextStepKey}`);
+  userStages[userId] = nextStepKey;
+
+  const nextStep = diagnosisTree[nextStepKey];
 
   // 📌 Ajout de "Autre (précisez)" si ce n'est pas déjà le cas
-  if (nextStep && nextStep.options && nextStep.options.length > 0 && userStages[userId] !== "ask_user_input") {
+  if (nextStep.options && nextStep.options.length > 0) {
     if (!nextStep.options.includes("Autre (précisez)")) {
       nextStep.options.push("Autre (précisez)");
       nextStep.next = nextStep.next || {};
@@ -102,13 +90,7 @@ app.post("/api/chat", async (req, res) => {
   }
 
   // 📌 Envoi de la réponse
-  if (nextStep) {
-    return res.json({ reply: `**${nextStep.question}**`, options: nextStep.options, sageFemme });
-  }
-
-  // 🚨 Si aucune correspondance trouvée, retour à l'utilisateur
-  console.log("⚠️ [DEBUG] Réponse par défaut envoyée.");
-  return res.json({ reply: "Je vais essayer de mieux comprendre. Pouvez-vous préciser votre problème ?", options: ["Retour", "Autre (précisez)"], sageFemme });
+  return res.json({ reply: `**${nextStep.question}**`, options: nextStep.options, sageFemme });
 });
 
 // 🚀 Lancement du serveur
