@@ -65,9 +65,9 @@ app.post("/api/chat", async (req, res) => {
 
   console.log(`🔄 État actuel de l'utilisateur (${userId}) : ${userStages[userId]}`);
 
-  // 📌 Mode "Autre (précisez)" - Accepter une entrée libre
+  // 📌 Mode "Autre (précisez)" - Accepter une entrée libre et avancer dans l'arbre
   if (userStages[userId] === "ask_user_input") {
-    userStages[userId] = "start"; // Retour normal après la saisie
+    userStages[userId] = "start"; // Revenir dans l'arbre après la réponse
     return res.json({
       reply: `Merci pour votre précision. Pouvez-vous me donner plus de détails ?`,
       options: ["Retour"],
@@ -75,16 +75,30 @@ app.post("/api/chat", async (req, res) => {
     });
   }
 
-  // 📌 Avancement dans l'arbre de diagnostic
-  const nextStep = getNextDiagnosisStep(userStages[userId], userMessage);
+  // 📌 **Fix : Vérification stricte des options**
+  let nextStep = getNextDiagnosisStep(userStages[userId], userMessage);
+
+  if (!nextStep) {
+    console.log("⚠️ Aucun match dans l'arbre, recherche d'une correspondance...");
+    
+    // Vérifier si la réponse correspond à une option existante
+    const lowerMessage = userMessage.toLowerCase();
+    for (let key in diagnosisTree) {
+      if (diagnosisTree[key].options && diagnosisTree[key].options.some(opt => opt.toLowerCase() === lowerMessage)) {
+        nextStep = diagnosisTree[key];
+        userStages[userId] = key;
+        break;
+      }
+    }
+  }
 
   if (nextStep) {
     console.log(`🔹 Passage à l'étape suivante : ${nextStep.question}`);
 
-    // **Mise à jour correcte de l'étape actuelle**
+    // **Fix : Mise à jour correcte de userStages**
     userStages[userId] = Object.keys(diagnosisTree).find(key => diagnosisTree[key] === nextStep) || "start";
 
-    // 📌 Ajout de "Autre (précisez)" sauf si déjà en mode texte libre
+    // 📌 **Ajout de "Autre (précisez)" sauf si déjà en mode texte libre**
     if (nextStep.options && nextStep.options.length > 0 && userStages[userId] !== "ask_user_input") {
       if (!nextStep.options.includes("Autre (précisez)")) {
         nextStep.options.push("Autre (précisez)");
@@ -100,8 +114,8 @@ app.post("/api/chat", async (req, res) => {
     });
   }
 
-  // 📌 Si aucune correspondance trouvée, inciter à préciser
-  console.log("⚠️ Aucun diagnostic trouvé, demande de précision...");
+  // 📌 **Fix : Si toujours aucune correspondance, inciter à reformuler**
+  console.log("⚠️ Aucun diagnostic trouvé, inciter à préciser...");
   return res.json({
     reply: "Je vais essayer de mieux comprendre. Pouvez-vous préciser votre problème ?",
     options: ["Retour", "Autre (précisez)"],
