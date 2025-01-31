@@ -32,7 +32,7 @@ function assignSageFemme(userId) {
   return userSageFemme[userId];
 }
 
-// 📌 Fonction de correspondance de mots-clés
+// 📌 Fonction de correspondance de mots-clés pour le texte libre
 function findMatchingStep(userInput) {
   const cleanedInput = userInput.toLowerCase().trim();
 
@@ -52,7 +52,8 @@ function findMatchingStep(userInput) {
     "autre souci gynécologique": "other_issue",
     "douleurs pelviennes": "pelvic_pain",
     "saignements anormaux": "abnormal_bleeding",
-    "infections fréquentes": "recurring_infections"
+    "infections fréquentes": "recurring_infections",
+    "endométriose": "endometriosis_info"
   };
 
   for (let key in keywords) {
