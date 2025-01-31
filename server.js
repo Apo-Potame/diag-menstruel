@@ -63,11 +63,9 @@ app.post("/api/chat", async (req, res) => {
   // 📌 Vérifier l'étape suivante dans l'arbre interactif
   let nextStep = getNextDiagnosisStep(userStages[userId], userMessage);
 
-  console.log(`🔍 [DEBUG] Étape suivante trouvée : ${nextStep ? nextStep.question : "Aucune correspondance"}`);
-
   if (!nextStep) {
-    console.log("⚠️ [DEBUG] Aucun match dans l'arbre, tentative de correspondance...");
-    
+    console.log("⚠️ [DEBUG] Aucune correspondance directe, tentative de correspondance alternative...");
+
     // 🔎 Vérifier si l'input de l'utilisateur correspond à une option dans l'arbre
     const lowerMessage = userMessage.toLowerCase();
     let foundKey = null;
@@ -82,31 +80,33 @@ app.post("/api/chat", async (req, res) => {
     if (foundKey) {
       console.log(`✅ [DEBUG] Correspondance trouvée : ${foundKey}`);
       nextStep = diagnosisTree[foundKey];
-      userStages[userId] = foundKey;
+      userStages[userId] = foundKey; // 🔹 **Mise à jour correcte de l'état**
     } else {
       console.log("⛔ [DEBUG] Aucune correspondance trouvée.");
     }
+  } else {
+    console.log(`🔍 [DEBUG] Étape suivante trouvée : ${nextStep.question}`);
+    userStages[userId] = Object.keys(diagnosisTree).find(key => diagnosisTree[key] === nextStep) || "start";
   }
 
-  // 📌 Si on trouve une étape suivante, mise à jour correcte
-  if (nextStep) {
-    console.log(`🔹 [DEBUG] Mise à jour vers l'étape : ${nextStep.question}`);
-    
-    userStages[userId] = Object.keys(diagnosisTree).find(key => diagnosisTree[key] === nextStep) || "start";
+  // 📌 Vérification que l'état a bien changé
+  console.log(`✅ [DEBUG] Nouvel état de l'utilisateur : ${userStages[userId]}`);
 
-    // ✅ Ajout de "Autre (précisez)" si ce n'est pas déjà le cas
-    if (nextStep.options && nextStep.options.length > 0 && userStages[userId] !== "ask_user_input") {
-      if (!nextStep.options.includes("Autre (précisez)")) {
-        nextStep.options.push("Autre (précisez)");
-        nextStep.next = nextStep.next || {};
-        nextStep.next["Autre (précisez)"] = "ask_user_input";
-      }
+  // 📌 Ajout de "Autre (précisez)" si ce n'est pas déjà le cas
+  if (nextStep && nextStep.options && nextStep.options.length > 0 && userStages[userId] !== "ask_user_input") {
+    if (!nextStep.options.includes("Autre (précisez)")) {
+      nextStep.options.push("Autre (précisez)");
+      nextStep.next = nextStep.next || {};
+      nextStep.next["Autre (précisez)"] = "ask_user_input";
     }
+  }
 
+  // 📌 Envoi de la réponse
+  if (nextStep) {
     return res.json({ reply: `**${nextStep.question}**`, options: nextStep.options, sageFemme });
   }
 
-  // 🚨 Si aucune correspondance, retour à l'utilisateur
+  // 🚨 Si aucune correspondance trouvée, retour à l'utilisateur
   console.log("⚠️ [DEBUG] Réponse par défaut envoyée.");
   return res.json({ reply: "Je vais essayer de mieux comprendre. Pouvez-vous préciser votre problème ?", options: ["Retour", "Autre (précisez)"], sageFemme });
 });
