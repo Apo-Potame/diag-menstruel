@@ -32,13 +32,14 @@ function assignSageFemme(userId) {
   return userSageFemme[userId];
 }
 
-// 📌 Correspondance avec des mots-clés pour gérer les réponses libres
+// 📌 Fonction de correspondance de mots-clés
 function findMatchingStep(userInput) {
   const cleanedInput = userInput.toLowerCase().trim();
 
   const keywords = {
     "règles douloureuses": "pain",
     "douleurs menstruelles": "pain",
+    "crampes": "pain",
     "spm": "pms_info",
     "syndrome prémenstruel": "pms_info",
     "flux abondant": "heavy_flow",
@@ -63,6 +64,7 @@ function findMatchingStep(userInput) {
   return null;
 }
 
+// 📌 Route principale pour gérer le chatbot
 app.post("/api/chat", async (req, res) => {
   console.log("\n✅ [DEBUG] Nouvelle requête reçue :", req.body);
 
@@ -84,10 +86,10 @@ app.post("/api/chat", async (req, res) => {
   console.log(`🔄 [DEBUG] État actuel de l'utilisateur (${userId}) : ${userStages[userId]}`);
   console.log(`📝 [DEBUG] Message reçu : "${userMessage}"`);
 
-  // 📌 Vérifier si l'utilisateur est en mode texte libre après "Autre (précisez)"
+  // 📌 Mode saisie libre après "Autre (précisez)"
   if (userStages[userId] === "ask_user_input") {
     console.log("🔄 [DEBUG] Mode saisie libre détecté.");
-    userStages[userId] = "start"; // Revenir à l'état normal après la saisie libre
+    userStages[userId] = "start"; // Retour à l’état normal
     return res.json({
       reply: "Merci pour cette précision. Pouvez-vous me donner plus de détails ?",
       options: ["Retour"],
