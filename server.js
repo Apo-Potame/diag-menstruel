@@ -19,7 +19,7 @@ const sageFemmeImages = {
   Louisa: "https://cdn.shopify.com/s/files/1/0045/2244/2786/files/sage-femme-louisa-web.png?v=1738228119",
 };
 
-// 📌 Attribuer une sage-femme aléatoire
+// 📌 Fonction pour attribuer une sage-femme aléatoire
 function assignSageFemme(userId) {
   if (!userSageFemme[userId]) {
     const sageFemmes = Object.keys(sageFemmeImages);
@@ -56,8 +56,9 @@ app.post("/api/chat", async (req, res) => {
   // 📌 Vérifier l'étape suivante dans l'arbre interactif
   let nextStepKey = getNextDiagnosisStep(userStages[userId], userMessage);
 
-  if (!nextStepKey) {
-    console.log("⚠️ [DEBUG] Aucune correspondance directe, tentative de correspondance alternative...");
+  // **Correction : Vérifier que `nextStepKey` est bien défini et correspond à une clé valide**
+  if (!nextStepKey || !diagnosisTree[nextStepKey]) {
+    console.log("⚠️ [DEBUG] Étape suivante non trouvée, tentative de correspondance alternative...");
 
     // 🔎 Vérifier si l'input de l'utilisateur correspond à une option dans l'arbre
     const lowerMessage = userMessage.toLowerCase();
@@ -68,13 +69,16 @@ app.post("/api/chat", async (req, res) => {
       }
     }
 
-    if (!nextStepKey) {
-      console.log("⛔ [DEBUG] Aucune correspondance trouvée.");
-      return res.json({ reply: "Je ne suis pas sûre de comprendre, pouvez-vous reformuler ?", options: ["Retour", "Autre (précisez)"], sageFemme });
+    if (!nextStepKey || !diagnosisTree[nextStepKey]) {
+      console.log("⛔ [DEBUG] Aucune correspondance trouvée, retour à une question générale.");
+      return res.json({
+        reply: "Je ne suis pas sûre de comprendre, pouvez-vous reformuler ?",
+        options: ["Retour", "Autre (précisez)"],
+        sageFemme,
+      });
     }
   }
 
-  // 📌 Mettre à jour l'état utilisateur
   console.log(`🔍 [DEBUG] Étape suivante trouvée : ${nextStepKey}`);
   userStages[userId] = nextStepKey;
 
@@ -90,7 +94,11 @@ app.post("/api/chat", async (req, res) => {
   }
 
   // 📌 Envoi de la réponse
-  return res.json({ reply: `**${nextStep.question}**`, options: nextStep.options, sageFemme });
+  return res.json({
+    reply: `**${nextStep.question}**`,
+    options: nextStep.options.length > 0 ? nextStep.options : ["Retour"],
+    sageFemme,
+  });
 });
 
 // 🚀 Lancement du serveur
