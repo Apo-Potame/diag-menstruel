@@ -32,19 +32,20 @@ function assignSageFemme(userId) {
   return userSageFemme[userId];
 }
 
-// 📌 Fonction d'association plus intelligente
+// 📌 Correspondance avec des mots-clés pour gérer les réponses libres
 function findMatchingStep(userInput) {
   const cleanedInput = userInput.toLowerCase().trim();
 
   const keywords = {
     "règles douloureuses": "pain",
     "douleurs menstruelles": "pain",
+    "spm": "pms_info",
+    "syndrome prémenstruel": "pms_info",
     "flux abondant": "heavy_flow",
     "règles abondantes": "heavy_flow",
     "absence de règles": "no_period",
     "retard de règles": "no_period",
     "grossesse": "pregnancy",
-    "enceinte": "pregnancy",
     "post-partum": "pregnancy",
     "allaitement": "breastfeeding",
     "autre souci gynécologique": "other_issue",
@@ -83,10 +84,21 @@ app.post("/api/chat", async (req, res) => {
   console.log(`🔄 [DEBUG] État actuel de l'utilisateur (${userId}) : ${userStages[userId]}`);
   console.log(`📝 [DEBUG] Message reçu : "${userMessage}"`);
 
+  // 📌 Vérifier si l'utilisateur est en mode texte libre après "Autre (précisez)"
+  if (userStages[userId] === "ask_user_input") {
+    console.log("🔄 [DEBUG] Mode saisie libre détecté.");
+    userStages[userId] = "start"; // Revenir à l'état normal après la saisie libre
+    return res.json({
+      reply: "Merci pour cette précision. Pouvez-vous me donner plus de détails ?",
+      options: ["Retour"],
+      sageFemme,
+    });
+  }
+
   // 📌 Vérifier l'étape suivante dans l'arbre interactif
   let nextStepKey = getNextDiagnosisStep(userStages[userId], userMessage);
 
-  // **🔍 Correction : Si `nextStepKey` est invalide, on tente une correspondance plus intelligente**
+  // 🔍 Si aucune étape n'est trouvée, essayer une correspondance alternative
   if (!nextStepKey || !diagnosisTree[nextStepKey]) {
     console.log("⚠️ [DEBUG] Étape suivante non trouvée, tentative de correspondance alternative...");
     nextStepKey = findMatchingStep(userMessage);
@@ -102,11 +114,11 @@ app.post("/api/chat", async (req, res) => {
   }
 
   console.log(`🔍 [DEBUG] Étape suivante trouvée : ${nextStepKey}`);
-  userStages[userId] = nextStepKey;
+  userStages[userId] = nextStepKey; // ✅ Mise à jour correcte de l'état de l'utilisateur
 
   const nextStep = diagnosisTree[nextStepKey];
 
-  // 📌 Ajout de "Autre (précisez)" si ce n'est pas déjà le cas
+  // 📌 Ajout de "Autre (précisez)" pour permettre la saisie libre
   if (nextStep.options && nextStep.options.length > 0) {
     if (!nextStep.options.includes("Autre (précisez)")) {
       nextStep.options.push("Autre (précisez)");
