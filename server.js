@@ -75,10 +75,9 @@ app.post("/api/chat", async (req, res) => {
     });
   }
 
-  // 📌 **Fix : Vérification stricte des options**
+  // 📌 Vérification si l'utilisateur a sélectionné une option existante
   let nextStep = getNextDiagnosisStep(userStages[userId], userMessage);
 
-  // **Correction : Vérification stricte si la réponse correspond à une option existante**
   if (!nextStep) {
     console.log("⚠️ Aucun match dans l'arbre, recherche d'une correspondance...");
 
@@ -86,7 +85,10 @@ app.post("/api/chat", async (req, res) => {
     let foundKey = null;
 
     for (let key in diagnosisTree) {
-      if (diagnosisTree[key].options && diagnosisTree[key].options.some(opt => opt.toLowerCase() === lowerMessage)) {
+      if (
+        diagnosisTree[key].options &&
+        diagnosisTree[key].options.some((opt) => opt.toLowerCase() === lowerMessage)
+      ) {
         foundKey = key;
         break;
       }
@@ -98,11 +100,11 @@ app.post("/api/chat", async (req, res) => {
     }
   }
 
-  // 📌 Correction : Assurer que userStages[userId] est bien mis à jour
+  // 📌 Vérification finale pour s'assurer que le chatbot avance bien
   if (nextStep) {
     console.log(`🔹 Passage à l'étape suivante : ${nextStep.question}`);
 
-    userStages[userId] = Object.keys(diagnosisTree).find(key => diagnosisTree[key] === nextStep) || "start";
+    userStages[userId] = Object.keys(diagnosisTree).find((key) => diagnosisTree[key] === nextStep) || "start";
 
     // 📌 **Ajout de "Autre (précisez)" sauf si déjà en mode texte libre**
     if (nextStep.options && nextStep.options.length > 0 && userStages[userId] !== "ask_user_input") {
