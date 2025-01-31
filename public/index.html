@@ -13,7 +13,7 @@
     </div>
     <div id="options-container"></div>
     <div id="chat-input">
-      <textarea id="user-input" placeholder="Une question de santé féminine ?" disabled></textarea>
+      <textarea id="user-input" placeholder="Une question de santé féminine ?"></textarea>
       <button id="send-button" disabled>Envoyer</button>
     </div>
   </div>
@@ -46,9 +46,7 @@
     sageFemmeImg.alt = `Sage-femme virtuelle ${sageFemme.name}`;
 
     function updateInputState() {
-      const isDisabled = optionsContainer.childElementCount > 0;
-      userInput.disabled = isDisabled;
-      sendButton.disabled = isDisabled || userInput.value.trim() === "";
+      sendButton.disabled = userInput.value.trim() === "";
     }
 
     userInput.addEventListener("input", updateInputState);
@@ -72,7 +70,6 @@
         });
         optionsContainer.appendChild(button);
       });
-      updateInputState();
     }
 
     async function sendMessage(userMessage) {
@@ -80,8 +77,8 @@
 
       displayMessage(userMessage, "user");
       userInput.value = "";
-      optionsContainer.innerHTML = "";
       updateInputState();
+
       displayMessage("Votre sage-femme réfléchit...", "bot");
 
       try {
@@ -95,10 +92,8 @@
         messagesContainer.lastChild.remove();
         displayMessage(data.reply, "bot", true);
 
-        if (data.options.length > 0) {
+        if (data.options && data.options.length > 0) {
           displayOptions(data.options);
-        } else {
-          updateInputState();
         }
 
       } catch (error) {
